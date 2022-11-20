@@ -1,0 +1,75 @@
+---
+# @tag docker-container-prereq-all:description: Ensure all pre-requisites are installed
+# @tag docker-container-prereq-guacamole:description: Ensure all pre-requisites for guacamole are installed
+- ansible.builtin.import_tasks: "{{ role_path }}/tasks/prereq.yml"
+  tags:
+    - docker-container-prereq-all
+    - docker-container-prereq-guacamole
+
+# @tag docker-container-restore-all:description: Run restic restore for all restic enabled containers.
+# @tag docker-container-restore-guacamole:description: Run restic restore for guacamole if restic is enabled.
+- ansible.builtin.import_tasks: "{{ role_path }}/tasks/restore.yml"
+  tags:
+    - never
+    - docker-container-restore-all
+    - docker-container-restore-guacamole
+  when:
+    - docker_container_guacamole_restic_enable
+
+# @tag docker-container-setup-all:description: Run setup task for all containers.
+# @tag docker-container-setup-guacamole:description: Run setup task for guacamole.
+- ansible.builtin.import_tasks: "{{ role_path }}/tasks/setup.yml"
+  tags:
+    - docker-container-setup-all
+    - docker-container-setup-guacamole
+    - docker-container-restore-all
+    - docker-container-restore-guacamole
+
+# @tag docker-container-backup-init-all:description: Run init backup task for all container.
+# @tag docker-container-backup-init-guacamole:description: Run init backup task for guacamole if restic is enabled.
+- ansible.builtin.import_tasks: "{{ role_path }}/tasks/backup_init.yml"
+  tags:
+    - docker-container-setup-all
+    - docker-container-setup-guacamole
+    - docker-container-backup-init-all
+    - docker-container-backup-init-guacamole
+  when:
+    - docker_container_guacamole_restic_enable
+
+# @tag docker-container-remove-all:description: Remove all containers.
+# @tag docker-container-remove-guacamole:description: Remove guacamole.
+- ansible.builtin.import_tasks: "{{ role_path }}/tasks/remove.yml"
+  tags:
+    - never
+    - docker-container-remove-all
+    - docker-container-remove-guacamole
+    - docker-container-purge-all
+    - docker-container-purge-guacamole
+
+# @tag docker-container-purge-all:description: Remove all containers and delete volume mounts.
+# @tag docker-container-purge-guacamole:description: Remove guacamole and delete volume mounts.
+- ansible.builtin.import_tasks: "{{ role_path }}/tasks/purge.yml"
+  tags:
+    - never
+    - docker-container-purge-all
+    - docker-container-purge-guacamole
+
+# @tag docker-container-backup-all:description: Backup all containers' volume mounts.
+# @tag docker-container-backup-guacamole:description: Backup guacamole volume mounts.
+- ansible.builtin.import_tasks: "{{ role_path }}/tasks/backup.yml"
+  tags:
+    - never
+    - docker-container-backup-all
+    - docker-container-backup-guacamole
+  when:
+    - docker_container_guacamole_restic_enable
+
+# @tag docker-container-backup-list-all:description: List all containers' backups.
+# @tag docker-container-backup-list-guacamole:description: List guacamole backups.
+- ansible.builtin.import_tasks: "{{ role_path }}/tasks/backup_list.yml"
+  tags:
+    - never
+    - docker-container-backup-list-all
+    - docker-container-backup-list-guacamole
+  when:
+    - docker_container_guacamole_restic_enable

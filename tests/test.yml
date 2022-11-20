@@ -1,0 +1,66 @@
+---
+- hosts: localhost
+  remote_user: root
+  vars:
+    docker_container_guacamole_mfa_enabled: false
+    docker_container_guacamole_mfa_totp_issuer: "testguac"
+    docker_container_guacamole_mfa_totp_version: "1.4.0"
+    docker_container_guacamole_database_name: "testguacdb"
+    docker_container_guacamole_database_user: "testguacuser"
+    docker_container_guacamole_database_password: "testguacpw8888"
+    docker_container_guacamole_database_root_password: "testguacrpw4444"
+    docker_container_guacamole_admin_username: "testguacadmin"
+    docker_container_guacamole_admin_password: "testguacadmin2222"
+
+    docker_container_guacamole_ldap_enabled: true
+    docker_container_guacamole_ldap_admin_username: "testguacadmin@acme.org"
+    docker_container_guacamole_ldap_admin_groupname: "guac_admin"
+    docker_container_guacamole_ldap_root_connection_groupname: "LAB"
+    docker_container_guacamole_ldap_hostame: "dc.acme.org"
+    docker_container_guacamole_ldap_user_base_dn: "OU=Users,OU=infra,DC=acme,DC=org"
+    docker_container_guacamole_ldap_group_base_dn: "OU=Groups,OU=infra,DC=acme,DC=org"
+    docker_container_guacamole_ldap_search_bind_dn: "CN=guac_bind,OU=Services,OU=infra,DC=acme,DC=org"
+    docker_container_guacamole_ldap_search_bind_password: "somepassword"
+
+    docker_container_guacamole_ldap_port: "636"
+    docker_container_guacamole_ldap_encryption_method: "ssl"
+    # docker_container_guacamole_ldap_username_attribute: "userPrincipalName"
+    # docker_container_guacamole_ldap_groupname_attribute: "cn"
+    # docker_container_guacamole_ldap_member_attribute: "member"
+    # docker_container_guacamole_ldap_user_search_filter: "(&(objectCategory=person)(objectclass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+
+    docker_container_guacamole_ca_certificates:
+      - { cert_file: "files/lab_root.cer" }
+
+    docker_container_guacamole_labels:
+      traefik.enable: "true"
+      traefik.http.routers.guacamole.rule: "Host(`{{ docker_container_guacamole_name }}.{{ docker_container__base__dns_domain }}`)"
+      traefik.http.routers.guacamole.entrypoints: http
+      traefik.http.routers.guacamole.service: guacamole
+      # traefik.http.routers.guacamole.middlewares: https_redirect_permanent@file
+      traefik.http.routers.guacamole.middlewares: "guac_addprefix"
+      # HTTPS
+      traefik.http.routers.guacamole_ssl.rule: "Host(`{{ docker_container_guacamole_name }}.{{ docker_container__base__dns_domain }}`)"
+      traefik.http.routers.guacamole_ssl.entrypoints: https
+      traefik.http.routers.guacamole_ssl.service: guacamole
+      # traefik.http.routers.guacamole_ssl.tls: "true"
+      # traefik.http.routers.guacamole_ssl.tls.certResolver: le
+      traefik.http.routers.guacamole_ssl.tls.options: nosni@file
+      # traefik.http.routers.guacamole_ssl.middlewares: "hsts@file"
+      traefik.http.routers.guacamole_ssl.middlewares: "guac_addprefix"
+      # Middlewares
+      traefik.http.middlewares.guac_addprefix.addprefix.prefix: "/guacamole"
+      # Service
+      traefik.http.services.guacamole.loadbalancer.server.port: "8080"
+
+    docker_container_guacamole_networks:
+      - name: "{{ docker_network_guacamole_name }}"
+        links:
+          - "{{ docker_container_guacamoledb_name }}:mysql"
+          - "{{ docker_container_guacd_name }}:guacd"
+      - name: "{{ docker_network_traefik_name }}"
+
+    # docker_container_guacamole_restic_enable: true
+
+  roles:
+    - ansible-role-docker-container-guacamole

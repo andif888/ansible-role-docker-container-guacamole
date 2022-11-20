@@ -1,0 +1,239 @@
+---
+# tasks file for ansible-role-docker-container-guacamole
+
+- name: docker_container - {{ docker_container_guacamole_volume_dir }}
+  ansible.builtin.file:
+    path: "{{ docker_container_guacamole_volume_dir }}/{{ item }}"
+    state: directory
+  loop:
+    - "certs"
+    - "home"
+    - "home/extensions"
+    - "conf"
+    - "mysql_init"
+
+- name: docker_container {{ docker_container_guacamole_volume_dir }} - ca certs 
+  ansible.builtin.copy:
+    src: '{{ item.cert_file }}'
+    dest: '{{ docker_container_guacamole_volume_dir }}/certs/{{ item.cert_file | basename }}'
+  loop: '{{ docker_container_guacamole_ca_certificates }}'
+  when: 
+    - docker_container_guacamole_ca_certificates is defined
+    - docker_container_guacamole_ca_certificates | length > 0
+
+- name: docker_container - {{ docker_container_guacamole_volume_dir }} schema.sql
+  template:
+    src: templates/schema.sql.j2
+    dest: "{{ docker_container_guacamole_volume_dir }}/mysql_init/schema.sql"
+
+- name: docker_container - {{ docker_container_guacamole_volume_dir }} guacamole.properties
+  template:
+    src: templates/guacamole.properties.j2
+    dest: "{{ docker_container_guacamole_volume_dir }}/home/guacamole.properties"
+
+- name: docker_container - {{ docker_container_guacamole_volume_dir }} server.xml
+  template:
+    src: templates/server.xml.j2
+    dest: "{{ docker_container_guacamole_volume_dir }}/conf/server.xml"
+
+- name: docker_container - {{ docker_container_guacamole_volume_dir }} download auth-totp
+  unarchive:
+    src: 'https://apache.org/dyn/closer.lua/guacamole/{{ docker_container_guacamole_mfa_totp_version }}/binary/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}.tar.gz?action=download'
+    dest: '{{ docker_container_guacamole_volume_dir }}'
+    creates: '{{ docker_container_guacamole_volume_dir }}/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}.jar'
+    remote_src: yes
+  tags: docker_container_guac_mfa
+  when: docker_container_guacamole_mfa_enabled
+
+- name: docker_container - {{ docker_container_guacamole_volume_dir }} copy auth-totp to extension directory
+  copy:
+    src: '{{ docker_container_guacamole_volume_dir }}/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}.jar'
+    dest: '{{ docker_container_guacamole_volume_dir }}/home/extensions/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}.jar'
+    remote_src: yes
+  register: docker_container_guac_mfa_result
+  tags: docker_container_guac_mfa
+  when: docker_container_guacamole_mfa_enabled
+
+- name: docker_container - {{ docker_container_guacamole_volume_dir }} check if auth-totp extenstions file exists
+  ansible.builtin.stat:
+    path: '{{ docker_container_guacamole_volume_dir }}/home/extensions/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}.jar'
+  register: docker_container_guac_mfa_file_exists_result
+
+- name: docker_container - {{ docker_container_guacamole_volume_dir }} remove auth-totp extenstions file
+  file:
+    path: '{{ docker_container_guacamole_volume_dir }}/home/extensions/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}.jar'
+    state: absent
+    register: docker_container_guac_mfa_file
+  tags: docker_container_guac_mfa
+  when:
+    - docker_container_guacamole_mfa_enabled == false
+    - docker_container_guac_mfa_file_exists_result.stat.exists
+
+- name: docker_image pull {{ docker_image_guacamoledb_name }}
+  community.docker.docker_image:
+    name: '{{ docker_image_guacamoledb_name }}'
+    source: pull
+    # Select platform for pulling. If not specified, will pull whatever docker prefers.
+    pull:
+      platform: amd64
+  when: 
+    - docker_image_guacamoledb_pull is defined
+
+- name: docker_image pull {{ docker_image_guacd_name }}
+  community.docker.docker_image:
+    name: '{{ docker_image_guacd_name }}'
+    source: pull
+    # Select platform for pulling. If not specified, will pull whatever docker prefers.
+    pull:
+      platform: amd64
+  when: 
+    - docker_image_guacd_pull is defined
+
+- name: docker_image pull {{ docker_image_guacamole_name }}
+  community.docker.docker_image:
+    name: '{{ docker_image_guacamole_name }}'
+    source: pull
+    # Select platform for pulling. If not specified, will pull whatever docker prefers.
+    pull:
+      platform: amd64
+  when: 
+    - docker_image_guacamole_pull is defined
+
+- name: docker_network {{ docker_container_guacamole_name }}
+  community.docker.docker_network:
+    name: "{{ docker_network_guacamole_name }}"
+    driver: "{{ docker_network_guacamole_driver | default('bridge') }}"
+    attachable: "{{ docker_network_guacamole_attachable | default('yes') }}"
+    enable_ipv6: "{{ docker_network_guacamole_enable_ipv6 | default('no') }}"
+    internal: "{{ docker_network_guacamole_internal | default('no') }}"
+    state: present
+
+- name: docker_container {{ docker_container_guacamoledb_name }}
+  community.docker.docker_container:
+    name: "{{ docker_container_guacamoledb_name }}"
+    image: "{{ docker_container_guacamoledb_image }}"
+    state: "{{ docker_container_guacamoledb_state | default('started') }}"
+    recreate: "{{ docker_container_guacamoledb_recreate | default('no') }}"
+    restart: "{{ docker_container_guacamoledb_restart | default('no') }}"
+    restart_policy: "{{ docker_container_guacamoledb_restart_policy | default('always') }}"
+    container_default_behavior: no_defaults
+    auto_remove: "{{ docker_container_guacamoledb_auto_remove | default('no') }}"
+    detach: "{{ docker_container_guacamoledb_detach | default('yes') }}"
+    init: "{{ docker_container_guacamoledb_init | default('no') }}"
+    interactive: "{{ docker_container_guacamoledb_interactive | default('no') }}"
+    keep_volumes: "{{ docker_container_guacamoledb_keep_volumes | default('yes') }}"
+    memory: "{{ docker_container_guacamoledb_memory | default('0') }}"
+    paused: "{{ docker_container_guacamoledb_paused | default('no') }}"
+    privileged: "{{ docker_container_guacamoledb_privileged | default('no') }}"
+    read_only: "{{ docker_container_guacamoledb_read_only | default('no') }}"
+    tty: "{{ docker_container_guacamoledb_tty | default('no') }}"
+    env_file: "{{ docker_container_guacamoledb_env_file | default(omit) }}"
+    env: "{{ docker_container_guacamoledb_env | default(omit) }}"
+    volumes: "{{ docker_container_guacamoledb_volumes | default(omit) }}"
+    labels: "{{ docker_container_guacamoledb_labels | default(omit) }}"
+    networks_cli_compatible: "{{ docker_container_guacamoledb_networks_cli_compatible | default('yes') }}"
+    network_mode: "{{ docker_network_guacamoledb_name }}"
+    pull: "{{ docker_container_guacamoledb_pull | default('no') }}"
+    purge_networks: "{{ docker_container_guacamoledb_purge_networks | default('yes') }}"
+    networks: "{{ docker_container_guacamoledb_networks }}"
+    published_ports: "{{ docker_container_guacamoledb_ports | default(omit) }}"
+
+- name: docker_container {{ docker_container_guacd_name }}
+  community.docker.docker_container:
+    name: "{{ docker_container_guacd_name }}"
+    image: "{{ docker_container_guacd_image }}"
+    state: "{{ docker_container_guacd_state | default('started') }}"
+    recreate: "{{ docker_container_guacd_recreate | default('no') }}"
+    restart: "{{ docker_container_guacd_restart | default('no') }}"
+    restart_policy: "{{ docker_container_guacd_restart_policy | default('always') }}"
+    container_default_behavior: no_defaults
+    auto_remove: "{{ docker_container_guacd_auto_remove | default('no') }}"
+    detach: "{{ docker_container_guacd_detach | default('yes') }}"
+    init: "{{ docker_container_guacd_init | default('no') }}"
+    interactive: "{{ docker_container_guacd_interactive | default('no') }}"
+    keep_volumes: "{{ docker_container_guacd_keep_volumes | default('yes') }}"
+    memory: "{{ docker_container_guacd_memory | default('0') }}"
+    paused: "{{ docker_container_guacd_paused | default('no') }}"
+    privileged: "{{ docker_container_guacd_privileged | default('no') }}"
+    read_only: "{{ docker_container_guacd_read_only | default('no') }}"
+    tty: "{{ docker_container_guacd_tty | default('no') }}"
+    env_file: "{{ docker_container_guacd_env_file | default(omit) }}"
+    env: "{{ docker_container_guacd_env | default(omit) }}"
+    volumes: "{{ docker_container_guacd_volumes | default(omit) }}"
+    labels: "{{ docker_container_guacd_labels | default(omit) }}"
+    networks_cli_compatible: "{{ docker_container_guacd_networks_cli_compatible | default('yes') }}"
+    network_mode: "{{ docker_network_guacd_name }}"
+    pull: "{{ docker_container_guacd_pull | default('no') }}"
+    purge_networks: "{{ docker_container_guacd_purge_networks | default('yes') }}"
+    networks: "{{ docker_container_guacd_networks }}"
+    published_ports: "{{ docker_container_guacd_ports | default(omit) }}"
+
+- name: docker_container {{ docker_container_guacamole_name }}
+  community.docker.docker_container:
+    name: "{{ docker_container_guacamole_name }}"
+    image: "{{ docker_container_guacamole_image }}"
+    state: "{{ docker_container_guacamole_state | default('started') }}"
+    recreate: "{{ docker_container_guacamole_recreate | default('no') }}"
+    restart: "{{ docker_container_guacamole_restart | default('no') }}"
+    restart_policy: "{{ docker_container_guacamole_restart_policy | default('always') }}"
+    container_default_behavior: no_defaults
+    auto_remove: "{{ docker_container_guacamole_auto_remove | default('no') }}"
+    detach: "{{ docker_container_guacamole_detach | default('yes') }}"
+    init: "{{ docker_container_guacamole_init | default('no') }}"
+    interactive: "{{ docker_container_guacamole_interactive | default('no') }}"
+    keep_volumes: "{{ docker_container_guacamole_keep_volumes | default('yes') }}"
+    memory: "{{ docker_container_guacamole_memory | default('0') }}"
+    paused: "{{ docker_container_guacamole_paused | default('no') }}"
+    privileged: "{{ docker_container_guacamole_privileged | default('no') }}"
+    read_only: "{{ docker_container_guacamole_read_only | default('no') }}"
+    tty: "{{ docker_container_guacamole_tty | default('no') }}"
+    env_file: "{{ docker_container_guacamole_env_file | default(omit) }}"
+    env: "{{ docker_container_guacamole_env | default(omit) }}"
+    volumes: "{{ docker_container_guacamole_volumes | default(omit) }}"
+    labels: "{{ docker_container_guacamole_labels | default(omit) }}"
+    networks_cli_compatible: "{{ docker_container_guacamole_networks_cli_compatible | default('yes') }}"
+    network_mode: "{{ docker_network_guacamole_name }}"
+    pull: "{{ docker_container_guacamole_pull | default('no') }}"
+    purge_networks: "{{ docker_container_guacamole_purge_networks | default('yes') }}"
+    networks: "{{ docker_container_guacamole_networks }}"
+    published_ports: "{{ docker_container_guacamole_ports | default(omit) }}"
+  register: docker_container_guacamole_result
+
+- name: docker_container {{ docker_container_guacamole_name }} - Delete CA Certificates
+  community.docker.docker_container_exec:
+    container: "{{ docker_container_guacamole_name }}"
+    argv:
+      - /bin/bash
+      - "-c"
+      - "keytool -delete -trustcacerts -alias {{ item.cert_file | basename }} -keystore $JAVA_HOME/jre/lib/security/cacerts -storepass changeit -noprompt"
+    user: root
+  loop: '{{ docker_container_guacamole_ca_certificates }}'
+  register: docker_container_guacamole_delete_ca_certificates_result
+  ignore_errors: true
+  when: 
+    - docker_container_guacamole_ca_certificates is defined
+    - docker_container_guacamole_ca_certificates | length > 0
+
+- name: docker_container {{ docker_container_guacamole_name }} - Delete CA Certificates Result 
+  ansible.builtin.debug:
+    var: docker_container_guacamole_delete_ca_certificates_result
+  when: docker_container_guacamole_delete_ca_certificates_result is defined
+
+- name: docker_container {{ docker_container_guacamole_name }} - Import CA Certificates
+  community.docker.docker_container_exec:
+    container: "{{ docker_container_guacamole_name }}"
+    argv:
+      - /bin/bash
+      - "-c"
+      - "keytool -import -trustcacerts -alias {{ item.cert_file | basename }} -file /guac_certs/{{ item.cert_file | basename }} -keystore $JAVA_HOME/jre/lib/security/cacerts -storepass changeit -noprompt"
+    user: root
+  loop: '{{ docker_container_guacamole_ca_certificates }}'
+  register: docker_container_guacamole_import_ca_certificates_result
+  when: 
+    - docker_container_guacamole_ca_certificates is defined
+    - docker_container_guacamole_ca_certificates | length > 0
+
+- name: docker_container {{ docker_container_guacamole_name }} - Import CA Certificates Result 
+  ansible.builtin.debug:
+    var: docker_container_guacamole_import_ca_certificates_result
+  when: docker_container_guacamole_import_ca_certificates_result is defined

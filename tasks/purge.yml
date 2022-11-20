@@ -1,0 +1,6 @@
+---
+- name: remove_files {{ docker_container_guacamole_volume_dir }}
+  ansible.builtin.file:
+    path: "{{ docker_container_guacamole_volume_dir }}"
+    state: absent
+  when: docker_container_guacamole_volume_dir is defined

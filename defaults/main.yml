@@ -1,0 +1,479 @@
+---
+# defaults file for ansible-role-docker-container-guacamole
+
+# @var docker_container_guacamole_mfa_enabled:description: Enable TOTP authentication extension.
+docker_container_guacamole_mfa_enabled: false
+
+# @var docker_container_guacamole_mfa_totp_issuer:description: Issue display name for TOTP authentication.
+docker_container_guacamole_mfa_totp_issuer: "guacamole"
+
+# @var docker_container_guacamole_mfa_totp_version:description: TOTP authentication extensions version.
+docker_container_guacamole_mfa_totp_version: "1.4.0"
+
+# @var docker_container_guacamole_database_name:description: Name of the database.
+docker_container_guacamole_database_name: "guacamole"
+
+# @var docker_container_guacamole_database_user:description: Name of the database user.
+docker_container_guacamole_database_user: "guacamole"
+
+# @var docker_container_guacamole_database_password:description: Password of the database user.
+docker_container_guacamole_database_password: "guacsomethingsecret8888"
+
+# @var docker_container_guacamole_database_root_password:description: Root-Password of the database.
+docker_container_guacamole_database_root_password: "guacsomethingsecret4444"
+
+# @var docker_container_guacamole_admin_username:description: Initial admin username.
+docker_container_guacamole_admin_username: "guacadmin"
+
+# @var docker_container_guacamole_admin_password:description: Initial admin password.
+docker_container_guacamole_admin_password: "guacadmin"
+
+# @var docker_container_guacamole_ldap_enabled:description: Enable LDAP authentication.
+docker_container_guacamole_ldap_enabled: false
+
+# @var docker_container_guacamole_ldap_admin_username:description: >
+# Existing LDAP admin username.
+# Choose the format acording to `docker_container_guacamole_ldap_username_attribute`
+#@end
+docker_container_guacamole_ldap_admin_username: "guac_admin@acme.org"
+
+# @var docker_container_guacamole_ldap_admin_groupname:description: >
+# Existing LDAP group.
+# Members of this group get admin permissions.
+#@end
+docker_container_guacamole_ldap_admin_groupname: "guac_admins"
+
+# @var docker_container_guacamole_ldap_root_connection_groupname:description: Display name for Root Connection Group
+docker_container_guacamole_ldap_root_connection_groupname: "ACME"
+
+# docker_container_guacamole_ldap_hostame: "dc.acme.org"
+# docker_container_guacamole_ldap_user_base_dn: "OU=Users,OU=infra,DC=acme,DC=org"
+# docker_container_guacamole_ldap_group_base_dn: "OU=Groups,OU=infra,DC=acme,DC=org"
+# docker_container_guacamole_ldap_search_bind_dn: "CN=guac_bind,OU=Services,OU=infra,DC=acme,DC=org"
+# docker_container_guacamole_ldap_search_bind_password: "somepassword"
+
+# docker_container_guacamole_ldap_port: "389"
+# docker_container_guacamole_ldap_encryption_method: "none"   # none | ssl | starttls
+# docker_container_guacamole_ldap_username_attribute: "userPrincipalName"
+# docker_container_guacamole_ldap_groupname_attribute: "cn"
+# docker_container_guacamole_ldap_member_attribute: "member"
+# docker_container_guacamole_ldap_user_search_filter: "(&(objectCategory=person)(objectclass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+
+
+# @var docker_container_guacamole_ca_certificates:description: >
+# CA certificates used by Guacamole.
+#
+# Example:
+# 
+# ```yaml
+#
+# docker_container_guacamole_ca_certificates: 
+#
+#   - { cert_file: "files/acme1_org.cer" } 
+#
+#   - { cert_file: "files/acme2_org.cer" }
+#
+# ```
+#
+# @end
+docker_container_guacamole_ca_certificates: []
+
+
+# ------------
+# Docker image
+# ------------
+
+# @var docker_image_guacamole_name:description: Repository path and tag for the container image.
+docker_image_guacamole_name: "guacamole/guacamole:1.4.0"
+
+# @var docker_image_guacamole_pull:description: Indicate to always pull the docker image.
+docker_image_guacamole_pull: false
+
+# ----------------
+# Docker container
+# ----------------
+
+# @var docker_container_guacamole_name:description: Name for the container
+docker_container_guacamole_name: "guacamole"
+
+# @var docker_container_guacamole_image:description: >
+# Repository path and tag used to create the container.
+# If an image is not found or pull is true, the image will be pulled from the registry.
+# If no tag is included, latest will be used.
+# @end
+docker_container_guacamole_image: "{{ docker_image_guacamole_name }}"
+
+# @var docker_container_guacamole_volume_dir:description: >
+# Volume mount host directory, where Treafik config files are stored.
+# @end
+docker_container_guacamole_volume_dir: "{{ docker_container__base__volume_dir }}/{{ docker_container_guacamole_name }}"
+
+
+# @var docker_container_guacamole_env:description: >
+# Dictionery of key,value pairs for docker
+# environment variables to configure guacamole.
+# @end
+docker_container_guacamole_env:
+  GUACAMOLE_HOME: "/guac_home"
+  MYSQL_HOSTNAME: "mysql"
+  MYSQL_DATABASE: "{{ docker_container_guacamole_database_name }}"
+  MYSQL_USER: "{{ docker_container_guacamole_database_user }}"
+  MYSQL_PASSWORD: "{{ docker_container_guacamole_database_password }}"
+  GUACD_HOSTNAME: "guacd"
+  GUACD_PORT: "4822"
+  TOTP_ISSUER: "{{ docker_container_guacamole_mfa_totp_issuer }}"
+  LDAP_HOSTNAME: "{{ docker_container_guacamole_ldap_hostame | default(omit) }}"
+  LDAP_USER_BASE_DN: "{{ docker_container_guacamole_ldap_user_base_dn | default(omit) }}"
+  LDAP_GROUP_BASE_DN: "{{ docker_container_guacamole_ldap_group_base_dn | default(omit) }}"
+  LDAP_SEARCH_BIND_DN: "{{ docker_container_guacamole_ldap_search_bind_dn | default(omit) }}"
+  LDAP_SEARCH_BIND_PASSWORD: "{{ docker_container_guacamole_ldap_search_bind_password | default(omit) }}"
+  LDAP_PORT: "{{ docker_container_guacamole_ldap_port | default('389') }}"
+  LDAP_ENCRYPTION_METHOD: "{{ docker_container_guacamole_ldap_encryption_method | default('none') }}"
+  LDAP_USERNAME_ATTRIBUTE: "{{ docker_container_guacamole_ldap_username_attribute | default('userPrincipalName') }}"
+  LDAP_GROUP_NAME_ATTRIBUTE: "{{ docker_container_guacamole_ldap_groupname_attribute | default('cn') }}"
+  LDAP_MEMBER_ATTRIBUTE: "{{ docker_container_guacamole_ldap_member_attribute | default('member') }}"
+  LDAP_USER_SEARCH_FILTER: "{{ docker_container_guacamole_ldap_user_search_filter | default('(&(objectCategory=person)(objectclass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))') }}"
+
+# @var docker_container_guacamole_volumes:description: >
+# List of volumes to mount within the container.
+# @end
+docker_container_guacamole_volumes:
+  - "{{ docker_container_guacamole_volume_dir }}/conf/server.xml:/usr/local/tomcat/conf/server.xml"
+  - "{{ docker_container_guacamole_volume_dir }}/home:/guac_home"
+  - "{{ docker_container_guacamole_volume_dir }}/certs:/guac_certs"
+
+# @var docker_container_guacamole_labels:description: >
+# Dictionary of key value pairs for container labels.
+#
+# Example:
+#
+# ```yaml
+#
+# docker_container_guacamole_labels:
+#
+#   traefik.enable: "true"
+#
+# ```
+#
+# @end
+docker_container_guacamole_labels: {}
+
+# @var docker_container_guacamole_networks:description: >
+# List of networks the container belongs to.
+# @end
+docker_container_guacamole_networks:
+  - name: "{{ docker_network_guacamole_name }}"
+    links:
+      - "{{ docker_container_guacamoledb_name }}:mysql"
+      - "{{ docker_container_guacd_name }}:guacd"
+
+# @var docker_container_guacamole_ports:description: >
+# List of ports to publish from the container to the host.
+# @end
+docker_container_guacamole_ports:
+  - "8080:8080"
+
+# docker_container_guacamole_auto_remove: no
+# docker_container_guacamole_detach: yes
+# docker_container_guacamole_env_file: "{{ docker_container_guacamole_volume_dir }}/.env"
+# docker_container_guacamole_init: no
+# docker_container_guacamole_interactive: no
+# docker_container_guacamole_keep_volumes: yes
+# docker_container_guacamole_memory: "0"
+# docker_container_guacamole_paused: no
+# docker_container_guacamole_privileged: no
+# docker_container_guacamole_pull: no
+# docker_container_guacamole_purge_networks: yes
+# docker_container_guacamole_read_only: no
+# docker_container_guacamole_recreate: no
+# docker_container_guacamole_restart: no
+# docker_container_guacamole_restart_policy: always
+# docker_container_guacamole_state: started
+# docker_container_guacamole_tty: no
+# docker_container_guacamole_networks_cli_compatible: yes
+
+# --------------
+# Docker network
+# --------------
+
+# @var docker_network_guacamole_name:description: >
+# Name of the docker network created for guacamole.
+# @end
+docker_network_guacamole_name: "{{ docker_container_guacamole_name }}_backend"
+# docker_network_guacamole_driver: bridge
+# docker_network_guacamole_attachable: yes
+# docker_network_guacamole_enable_ipv6: no
+# docker_network_guacamole_internal: no
+
+# -------------
+# Restic Backup
+# -------------
+# @var docker_container_guacamole_restic_enable:description: >
+# Enable restic backup for the container's mounted volumes.
+# @end
+docker_container_guacamole_restic_enable: false
+
+# @var docker_container_guacamole_restic_s3_endpoint:description: >
+# Minio S3 endpoint for restic backup storage.
+#
+# Example:
+#
+# ```yaml
+#
+# docker_container__base__restic_s3_endpoint: "https://minio.{{ dns_domain }}"
+#
+# docker_container_guacamole_restic_s3_endpoint: "{{ docker_container__base__restic_s3_endpoint }}"
+#
+# ```
+#
+# @end
+docker_container_guacamole_restic_s3_endpoint: "{{ docker_container__base__restic_s3_endpoint }}"
+
+# @var docker_container_guacamole_restic_s3_bucket_name:description: >
+# Minio S3 bucket name for restic backup storage.
+# @end
+docker_container_guacamole_restic_s3_bucket_name: "restic-{{ docker_container_guacamole_name }}"
+
+# @var docker_container_guacamole_restic_s3_repo:description: >
+# Minio S3 repo URL for restic backup storage.
+# @end
+docker_container_guacamole_restic_s3_repo: "s3:{{ docker_container_guacamole_restic_s3_endpoint }}/{{ docker_container_guacamole_restic_s3_bucket_name }}"
+
+# @var docker_container_guacamole_restic_s3_repo_password:description: >
+# Minio S3 repo password for restic backup storage.
+# @end
+docker_container_guacamole_restic_s3_repo_password: "{{ docker_container__base__restic_s3_repo_password }}"
+
+# @var docker_container_guacamole_restic_s3_repo_access_key:description: >
+# Minio S3 repo access key for restic backup storage.
+# @end
+docker_container_guacamole_restic_s3_repo_access_key: "{{ docker_container__base__restic_s3_repo_access_key }}"
+# @var docker_container_guacamole_restic_s3_repo_secret_key:description: >
+# Minio S3 repo secret key for restic backup storage.
+# @end
+docker_container_guacamole_restic_s3_repo_secret_key: "{{ docker_container__base__restic_s3_repo_secret_key }}"
+
+# docker_container_guacamole_restic_s3_seed_repo: "s3:{{ docker_container__base__restic_s3_seed_endpoint }}/{{ docker_container_guacamole_restic_s3_bucket_name }}"
+# docker_container_guacamole_restic_s3_seed_repo_password: "{{ docker_container__base__restic_s3_repo_password }}"
+
+# @var docker_container_guacamole_restic_retention:description: >
+# Retention settions for `restic forget` after the `restic backup`.
+# @end
+docker_container_guacamole_restic_retention:
+  keep_last: 1
+  # keep_hourly: 1
+  keep_daily: 7
+  keep_weekly: 4
+  # keep_monthly: 6
+  # keep_yearly
+
+# @var docker_container_guacamole_restic_tag:description: >
+# Tag for the `restic backup` command
+# @end
+docker_container_guacamole_restic_tag: "{{ docker_container_guacamole_name }}"
+
+
+# ------------
+# Docker image
+# ------------
+
+# @var docker_image_guacamoledb_name:description: Repository path and tag for the container image.
+docker_image_guacamoledb_name: "mysql:8"
+
+# @var docker_image_guacamoledb_pull:description: Indicate to always pull the docker image.
+docker_image_guacamoledb_pull: false
+
+# ----------------
+# Docker container
+# ----------------
+
+# @var docker_container_guacamoledb_name:description: Name for the container
+docker_container_guacamoledb_name: "guacamoledb"
+
+# @var docker_container_guacamoledb_image:description: >
+# Repository path and tag used to create the container.
+# If an image is not found or pull is true, the image will be pulled from the registry.
+# If no tag is included, latest will be used.
+# @end
+docker_container_guacamoledb_image: "{{ docker_image_guacamoledb_name }}"
+
+# @var docker_container_guacamoledb_volume_dir:description: >
+# Volume mount host directory, where Treafik config files are stored.
+# @end
+docker_container_guacamoledb_volume_dir: "{{ docker_container__base__volume_dir }}/{{ docker_container_guacamole_name }}"
+
+# @var docker_container_guacamoledb_env:description: >
+# Dictionery of key,value pairs for docker
+# environment variables to configure guacamoledb.
+# @end
+docker_container_guacamoledb_env:
+  MYSQL_ROOT_PASSWORD: "{{ docker_container_guacamole_database_root_password }}"
+  MYSQL_DATABASE: "{{ docker_container_guacamole_database_name }}"
+  MYSQL_USER: "{{ docker_container_guacamole_database_user }}"
+  MYSQL_PASSWORD: "{{ docker_container_guacamole_database_password }}"
+
+# @var docker_container_guacamoledb_volumes:description: >
+# List of volumes to mount within the container.
+# @end
+docker_container_guacamoledb_volumes:
+  - "{{ docker_container_guacamole_volume_dir }}/mysql:/var/lib/mysql"
+  - "{{ docker_container_guacamole_volume_dir }}/mysql_init/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro"
+
+# @var docker_container_guacamoledb_labels:description: >
+# Dictionary of key value pairs for container labels.
+#
+# Example:
+#
+# ```yaml
+#
+# docker_container_guacamoledb_labels:
+#
+#   traefik.enable: "true"
+#
+# ```
+#
+# @end
+docker_container_guacamoledb_labels: {}
+
+# @var docker_container_guacamoledb_networks:description: >
+# List of networks the container belongs to.
+# @end
+docker_container_guacamoledb_networks:
+  - name: "{{ docker_network_guacamoledb_name }}"
+
+# @var docker_container_guacamoledb_ports:description: >
+# List of ports to publish from the container to the host.
+# @end
+docker_container_guacamoledb_ports: []
+
+# docker_container_guacamoledb_auto_remove: no
+# docker_container_guacamoledb_detach: yes
+# docker_container_guacamoledb_env_file: "{{ docker_container_guacamole_volume_dir }}/.env"
+# docker_container_guacamoledb_init: no
+# docker_container_guacamoledb_interactive: no
+# docker_container_guacamoledb_keep_volumes: yes
+# docker_container_guacamoledb_memory: "0"
+# docker_container_guacamoledb_paused: no
+# docker_container_guacamoledb_privileged: no
+# docker_container_guacamoledb_pull: no
+# docker_container_guacamoledb_purge_networks: yes
+# docker_container_guacamoledb_read_only: no
+# docker_container_guacamoledb_recreate: no
+# docker_container_guacamoledb_restart: no
+# docker_container_guacamoledb_restart_policy: always
+# docker_container_guacamoledb_state: started
+# docker_container_guacamoledb_tty: no
+# docker_container_guacamoledb_networks_cli_compatible: yes
+
+# --------------
+# Docker network
+# --------------
+
+# @var docker_network_guacamoledb_name:description: >
+# Name of the docker network created for guacamoledb.
+# @end
+docker_network_guacamoledb_name: "{{ docker_container_guacamole_name }}_backend"
+# docker_network_guacamoledb_driver: bridge
+# docker_network_guacamoledb_attachable: yes
+# docker_network_guacamoledb_enable_ipv6: no
+# docker_network_guacamoledb_internal: no
+
+
+# ------------
+# Docker image
+# ------------
+
+# @var docker_image_guacd_name:description: Repository path and tag for the container image.
+docker_image_guacd_name: "guacamole/guacd:1.4.0"
+
+# @var docker_image_guacd_pull:description: Indicate to always pull the docker image.
+docker_image_guacd_pull: false
+
+# ----------------
+# Docker container
+# ----------------
+
+# @var docker_container_guacd_name:description: Name for the container
+docker_container_guacd_name: "guacd"
+
+# @var docker_container_guacd_image:description: >
+# Repository path and tag used to create the container.
+# If an image is not found or pull is true, the image will be pulled from the registry.
+# If no tag is included, latest will be used.
+# @end
+docker_container_guacd_image: "{{ docker_image_guacd_name }}"
+
+# @var docker_container_guacd_volume_dir:description: >
+# Volume mount host directory, where Treafik config files are stored.
+# @end
+docker_container_guacd_volume_dir: "{{ docker_container__base__volume_dir }}/{{ docker_container_guacamole_name }}"
+
+# @var docker_container_guacd_env:description: >
+# Dictionery of key,value pairs for docker
+# environment variables to configure guacd.
+# @end
+docker_container_guacd_env: {}
+
+# @var docker_container_guacd_volumes:description: >
+# List of volumes to mount within the container.
+# @end
+docker_container_guacd_volumes: []
+
+# @var docker_container_guacd_labels:description: >
+# Dictionary of key value pairs for container labels.
+#
+# Example:
+#
+# ```yaml
+#
+# docker_container_guacd_labels:
+#
+#   traefik.enable: "true"
+#
+# ```
+#
+# @end
+docker_container_guacd_labels: {}
+
+# @var docker_container_guacd_networks:description: >
+# List of networks the container belongs to.
+# @end
+docker_container_guacd_networks:
+  - name: "{{ docker_network_guacd_name }}"
+
+# @var docker_container_guacd_ports:description: >
+# List of ports to publish from the container to the host.
+# @end
+docker_container_guacd_ports: []
+
+# docker_container_guacd_auto_remove: no
+# docker_container_guacd_detach: yes
+# docker_container_guacd_env_file: "{{ docker_container_guacamole_volume_dir }}/.env"
+# docker_container_guacd_init: no
+# docker_container_guacd_interactive: no
+# docker_container_guacd_keep_volumes: yes
+# docker_container_guacd_memory: "0"
+# docker_container_guacd_paused: no
+# docker_container_guacd_privileged: no
+# docker_container_guacd_pull: no
+# docker_container_guacd_purge_networks: yes
+# docker_container_guacd_read_only: no
+# docker_container_guacd_recreate: no
+# docker_container_guacd_restart: no
+# docker_container_guacd_restart_policy: always
+# docker_container_guacd_state: started
+# docker_container_guacd_tty: no
+# docker_container_guacd_networks_cli_compatible: yes
+
+# --------------
+# Docker network
+# --------------
+
+# @var docker_network_guacd_name:description: >
+# Name of the docker network created for guacd.
+# @end
+docker_network_guacd_name: "{{ docker_container_guacamole_name }}_backend"
+# docker_network_guacd_driver: bridge
+# docker_network_guacd_attachable: yes
+# docker_network_guacd_enable_ipv6: no
+# docker_network_guacd_internal: no

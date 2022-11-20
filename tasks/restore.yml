@@ -1,0 +1,81 @@
+---
+- name: docker_container_info {{ docker_container_guacamole_name }}
+  community.docker.docker_container_info:
+    name: "{{ docker_container_guacamole_name }}"
+  register: docker_container_guacamole_info_result
+
+- name: docker_container_info {{ docker_container_guacd_name }}
+  community.docker.docker_container_info:
+    name: "{{ docker_container_guacd_name }}"
+  register: docker_container_guacd_info_result
+
+- name: docker_container_info {{ docker_container_guacamoledb_name }}
+  community.docker.docker_container_info:
+    name: "{{ docker_container_guacamoledb_name }}"
+  register: docker_container_guacamoledb_info_result
+
+# - debug:
+#     var: docker_container_info_result
+
+- name: docker_container stop {{ docker_container_guacamole_name }}
+  community.docker.docker_container:
+    name: "{{ docker_container_guacamole_name }}"
+    state: stopped
+  when:
+    - docker_container_guacamole_info_result.exists
+    - docker_container_guacamole_info_result.container.State.Running
+
+- name: docker_container stop {{ docker_container_guacd_name }}
+  community.docker.docker_container:
+    name: "{{ docker_container_guacd_name }}"
+    state: stopped
+  when:
+    - docker_container_guacd_info_result.exists
+    - docker_container_guacd_info_result.container.State.Running
+
+- name: docker_container stop {{ docker_container_guacamoledb_name }}
+  community.docker.docker_container:
+    name: "{{ docker_container_guacamoledb_name }}"
+    state: stopped
+  when:
+    - docker_container_guacamoledb_info_result.exists
+    - docker_container_guacamoledb_info_result.container.State.Running
+
+- name: restore {{ docker_container_guacamole_volume_dir }}
+  ansible.builtin.shell: |
+    export RESTIC_REPOSITORY="{{ docker_container_guacamole_restic_s3_repo }}"
+    export AWS_ACCESS_KEY_ID="{{ docker_container_guacamole_restic_s3_repo_access_key }}"
+    export AWS_SECRET_ACCESS_KEY="{{ docker_container_guacamole_restic_s3_repo_secret_key }}"
+    export RESTIC_PASSWORD="{{ docker_container_guacamole_restic_s3_repo_password }}"
+    restic -v restore {{ restic_restore_snapshot | default('latest') }} --target "{{ restic_restore_target | default('/') }}" --include '{{ restic_restore_include | default(docker_container_guacamole_volume_dir) }}' --tag "{{ restic_restore_tag | default(docker_container_guacamole_restic_tag) }}"
+  register: restore_result
+
+- name: restore - debug
+  ansible.builtin.debug:
+    msg: '{{ restore_result.stdout }}'
+  when:
+    - restore_result is defined
+
+- name: docker_container start {{ docker_container_guacamoledb_name }}
+  community.docker.docker_container:
+    name: "{{ docker_container_guacamoledb_name }}"
+    state: started
+  when:
+    - docker_container_guacamoledb_info_result.exists
+    - docker_container_guacamoledb_info_result.container.State.Running
+
+- name: docker_container start {{ docker_container_guacd_name }}
+  community.docker.docker_container:
+    name: "{{ docker_container_guacd_name }}"
+    state: started
+  when:
+    - docker_container_guacd_info_result.exists
+    - docker_container_guacd_info_result.container.State.Running
+
+- name: docker_container start {{ docker_container_guacamole_name }}
+  community.docker.docker_container:
+    name: "{{ docker_container_guacamole_name }}"
+    state: started
+  when:
+    - docker_container_guacamole_info_result.exists
+    - docker_container_guacamole_info_result.container.State.Running

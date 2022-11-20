@@ -1,0 +1,86 @@
+---
+- name: backup_init {{ docker_container_guacamole_restic_s3_repo }} - Ensure S3 bucket exists
+  ansible.builtin.shell: |
+    mc alias set localminio {{ docker_container_guacamole_restic_s3_endpoint }} {{ docker_container_guacamole_restic_s3_repo_access_key }} {{ docker_container_guacamole_restic_s3_repo_secret_key }}
+    mc mb --ignore-existing localminio/{{ docker_container_guacamole_restic_s3_bucket_name }}     
+  register: mc_mb_result
+
+- name: backup_init {{ docker_container_guacamole_restic_s3_repo }}
+  ansible.builtin.debug:
+    msg: "{{ mc_mb_result.stdout }}"
+
+# using localhost here because DNS is not fully populated at this time
+- name: backup_init {{ docker_container_guacamole_restic_s3_repo }} - Check repo exists
+  ansible.builtin.shell: |
+    export RESTIC_REPOSITORY="{{ docker_container_guacamole_restic_s3_repo }}"
+    export AWS_ACCESS_KEY_ID="{{ docker_container_guacamole_restic_s3_repo_access_key }}"
+    export AWS_SECRET_ACCESS_KEY="{{ docker_container_guacamole_restic_s3_repo_secret_key }}"
+    export RESTIC_PASSWORD="{{ docker_container_guacamole_restic_s3_repo_password }}"
+    restic snapshots        
+  register: restic_snapshots
+  ignore_errors: true
+  changed_when: false
+
+- name: backup_init {{ docker_container_guacamole_restic_s3_repo }} - Init repo with seeding repo
+  ansible.builtin.shell: |
+    export RESTIC_REPOSITORY="{{ docker_container_guacamole_restic_s3_repo }}"
+    export AWS_ACCESS_KEY_ID="{{ docker_container_guacamole_restic_s3_repo_access_key }}"
+    export AWS_SECRET_ACCESS_KEY="{{ docker_container_guacamole_restic_s3_repo_secret_key }}"
+    export RESTIC_PASSWORD="{{ docker_container_guacamole_restic_s3_repo_password }}"
+    export RESTIC_PASSWORD2="{{ docker_container_guacamole_restic_s3_seed_repo_password }}"
+    restic init --repo2 {{ docker_container_guacamole_restic_s3_seed_repo }} --copy-chunker-params        
+  register: restic_init
+  when: 
+    - restic_snapshots.rc != 0
+    - docker_container_guacamole_restic_s3_seed_repo is defined
+    - docker_container_guacamole_restic_s3_seed_repo_password is defined
+
+- name: backup_init {{ docker_container_guacamole_restic_s3_repo }} - Seed repo with seeding repo
+  ansible.builtin.shell: |
+    export RESTIC_REPOSITORY="{{ docker_container_guacamole_restic_s3_seed_repo }}"      
+    export AWS_ACCESS_KEY_ID="{{ docker_container_guacamole_restic_s3_repo_access_key }}"
+    export AWS_SECRET_ACCESS_KEY="{{ docker_container_guacamole_restic_s3_repo_secret_key }}"
+    export RESTIC_PASSWORD="{{ docker_container_guacamole_restic_s3_seed_repo_password }}"
+    export RESTIC_PASSWORD2="{{ docker_container_guacamole_restic_s3_repo_password }}"
+    restic copy --repo2 {{ docker_container_guacamole_restic_s3_repo }}        
+  register: restic_seeded
+  when: 
+    - restic_init is defined
+    - docker_container_guacamole_restic_s3_seed_repo is defined
+    - docker_container_guacamole_restic_s3_seed_repo_password is defined
+
+- name: backup_init {{ docker_container_guacamole_restic_s3_repo }} - Init empty repo
+  ansible.builtin.shell: |
+    export RESTIC_REPOSITORY="{{ docker_container_guacamole_restic_s3_repo }}"
+    export AWS_ACCESS_KEY_ID="{{ docker_container_guacamole_restic_s3_repo_access_key }}"
+    export AWS_SECRET_ACCESS_KEY="{{ docker_container_guacamole_restic_s3_repo_secret_key }}"
+    export RESTIC_PASSWORD="{{ docker_container_guacamole_restic_s3_repo_password }}"
+    restic init        
+  register: restic_init_empty
+  when: 
+    - restic_snapshots.rc != 0
+    - (not restic_init is defined) or (restic_init.skipped)
+
+- name: backup_init {{ docker_container_guacamole_restic_s3_repo }} - restic_init
+  ansible.builtin.debug:
+    var: restic_init
+  when: restic_init is defined
+
+- name: backup_init {{ docker_container_guacamole_restic_s3_repo }} - restic_seeded
+  ansible.builtin.debug:
+    var: restic_seeded
+  when: restic_seeded is defined
+
+- name: backup_init {{ docker_container_guacamole_restic_s3_repo }} - restic_init_empty
+  ansible.builtin.debug:
+    var: restic_init_empty
+  when: restic_init_empty is defined
+
+- name: backup_init {{ docker_container_guacamole_restic_s3_repo }} - Seed time
+  debug:
+    msg: "Start {{ restic_seeded.start }} End {{ restic_seeded.end }} Delta {{ restic_seeded.delta }}"
+  when: 
+    - restic_seeded is defined
+    - restic_seeded.changed is defined
+    - restic_seeded.changed
+    - restic_seeded.delta is defined

@@ -1,0 +1,14 @@
+---
+- name: backup_list {{ docker_container_guacamole_volume_dir }}
+  ansible.builtin.shell: |
+    export RESTIC_REPOSITORY="{{ docker_container_guacamole_restic_s3_repo }}"
+    export AWS_ACCESS_KEY_ID="{{ docker_container_guacamole_restic_s3_repo_access_key }}"
+    export AWS_SECRET_ACCESS_KEY="{{ docker_container_guacamole_restic_s3_repo_secret_key }}"
+    export RESTIC_PASSWORD="{{ docker_container_guacamole_restic_s3_repo_password }}"
+    restic snapshots --tag "{{ docker_container_guacamole_restic_tag }}"
+  register: backup_list_result
+  
+- name: backup_list debug 
+  ansible.builtin.debug:
+    msg: "{{ backup_list_result.stdout }}"
+  
