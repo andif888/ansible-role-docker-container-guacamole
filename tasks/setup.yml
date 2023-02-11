@@ -72,6 +72,7 @@
 - name: docker_image pull {{ docker_image_guacamoledb_name }}
   community.docker.docker_image:
     name: '{{ docker_image_guacamoledb_name }}'
+    force_source: true
     source: pull
     # Select platform for pulling. If not specified, will pull whatever docker prefers.
     pull:
@@ -82,6 +83,7 @@
 - name: docker_image pull {{ docker_image_guacd_name }}
   community.docker.docker_image:
     name: '{{ docker_image_guacd_name }}'
+    force_source: true
     source: pull
     # Select platform for pulling. If not specified, will pull whatever docker prefers.
     pull:
@@ -92,6 +94,7 @@
 - name: docker_image pull {{ docker_image_guacamole_name }}
   community.docker.docker_image:
     name: '{{ docker_image_guacamole_name }}'
+    force_source: true
     source: pull
     # Select platform for pulling. If not specified, will pull whatever docker prefers.
     pull:
@@ -111,6 +114,7 @@
 - name: docker_container {{ docker_container_guacamoledb_name }}
   community.docker.docker_container:
     name: "{{ docker_container_guacamoledb_name }}"
+    comparisons: "{{ docker_container_guacamoledb_comparisons }}"
     image: "{{ docker_container_guacamoledb_image }}"
     state: "{{ docker_container_guacamoledb_state | default('started') }}"
     recreate: "{{ docker_container_guacamoledb_recreate | default('no') }}"
@@ -134,13 +138,13 @@
     networks_cli_compatible: "{{ docker_container_guacamoledb_networks_cli_compatible | default('yes') }}"
     network_mode: "{{ docker_network_guacamoledb_name }}"
     pull: "{{ docker_container_guacamoledb_pull | default('no') }}"
-    purge_networks: "{{ docker_container_guacamoledb_purge_networks | default('yes') }}"
     networks: "{{ docker_container_guacamoledb_networks }}"
     published_ports: "{{ docker_container_guacamoledb_ports | default(omit) }}"
 
 - name: docker_container {{ docker_container_guacd_name }}
   community.docker.docker_container:
     name: "{{ docker_container_guacd_name }}"
+    comparisons: "{{ docker_container_guacd_comparisons }}"
     image: "{{ docker_container_guacd_image }}"
     state: "{{ docker_container_guacd_state | default('started') }}"
     recreate: "{{ docker_container_guacd_recreate | default('no') }}"
@@ -164,13 +168,13 @@
     networks_cli_compatible: "{{ docker_container_guacd_networks_cli_compatible | default('yes') }}"
     network_mode: "{{ docker_network_guacd_name }}"
     pull: "{{ docker_container_guacd_pull | default('no') }}"
-    purge_networks: "{{ docker_container_guacd_purge_networks | default('yes') }}"
     networks: "{{ docker_container_guacd_networks }}"
     published_ports: "{{ docker_container_guacd_ports | default(omit) }}"
 
 - name: docker_container {{ docker_container_guacamole_name }}
   community.docker.docker_container:
     name: "{{ docker_container_guacamole_name }}"
+    comparisons: "{{ docker_container_guacamole_comparisons }}"
     image: "{{ docker_container_guacamole_image }}"
     state: "{{ docker_container_guacamole_state | default('started') }}"
     recreate: "{{ docker_container_guacamole_recreate | default('no') }}"
@@ -194,7 +198,6 @@
     networks_cli_compatible: "{{ docker_container_guacamole_networks_cli_compatible | default('yes') }}"
     network_mode: "{{ docker_network_guacamole_name }}"
     pull: "{{ docker_container_guacamole_pull | default('no') }}"
-    purge_networks: "{{ docker_container_guacamole_purge_networks | default('yes') }}"
     networks: "{{ docker_container_guacamole_networks }}"
     published_ports: "{{ docker_container_guacamole_ports | default(omit) }}"
   register: docker_container_guacamole_result

@@ -173,6 +173,15 @@ docker_container_guacamole_networks:
 docker_container_guacamole_ports:
   - "8080:8080"
 
+# @var docker_container_guacamole_comparisons:description: >
+# Allows to specify how properties of existing containers are compared with module options 
+# to decide whether the container should be recreated / updated or not.
+# @end
+docker_container_guacamole_comparisons:
+  image: strict
+  env: strict
+  volumes: strict
+
 # docker_container_guacamole_auto_remove: no
 # docker_container_guacamole_detach: yes
 # docker_container_guacamole_env_file: "{{ docker_container_guacamole_volume_dir }}/.env"
@@ -183,7 +192,6 @@ docker_container_guacamole_ports:
 # docker_container_guacamole_paused: no
 # docker_container_guacamole_privileged: no
 # docker_container_guacamole_pull: no
-# docker_container_guacamole_purge_networks: yes
 # docker_container_guacamole_read_only: no
 # docker_container_guacamole_recreate: no
 # docker_container_guacamole_restart: no
@@ -346,6 +354,15 @@ docker_container_guacamoledb_networks:
 # @end
 docker_container_guacamoledb_ports: []
 
+# @var docker_container_guacamoledb_comparisons:description: >
+# Allows to specify how properties of existing containers are compared with module options 
+# to decide whether the container should be recreated / updated or not.
+# @end
+docker_container_guacamoledb_comparisons:
+  image: strict
+  env: strict
+  volumes: strict
+
 # docker_container_guacamoledb_auto_remove: no
 # docker_container_guacamoledb_detach: yes
 # docker_container_guacamoledb_env_file: "{{ docker_container_guacamole_volume_dir }}/.env"
@@ -356,7 +373,6 @@ docker_container_guacamoledb_ports: []
 # docker_container_guacamoledb_paused: no
 # docker_container_guacamoledb_privileged: no
 # docker_container_guacamoledb_pull: no
-# docker_container_guacamoledb_purge_networks: yes
 # docker_container_guacamoledb_read_only: no
 # docker_container_guacamoledb_recreate: no
 # docker_container_guacamoledb_restart: no
@@ -446,6 +462,15 @@ docker_container_guacd_networks:
 # @end
 docker_container_guacd_ports: []
 
+# @var docker_container_guacd_comparisons:description: >
+# Allows to specify how properties of existing containers are compared with module options 
+# to decide whether the container should be recreated / updated or not.
+# @end
+docker_container_guacd_comparisons:
+  image: strict
+  env: strict
+  volumes: strict
+
 # docker_container_guacd_auto_remove: no
 # docker_container_guacd_detach: yes
 # docker_container_guacd_env_file: "{{ docker_container_guacamole_volume_dir }}/.env"
@@ -456,7 +481,6 @@ docker_container_guacd_ports: []
 # docker_container_guacd_paused: no
 # docker_container_guacd_privileged: no
 # docker_container_guacd_pull: no
-# docker_container_guacd_purge_networks: yes
 # docker_container_guacd_read_only: no
 # docker_container_guacd_recreate: no
 # docker_container_guacd_restart: no
