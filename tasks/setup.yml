@@ -72,35 +72,32 @@
 - name: docker_image pull {{ docker_image_guacamoledb_name }}
   community.docker.docker_image:
     name: '{{ docker_image_guacamoledb_name }}'
-    force_source: true
     source: pull
     # Select platform for pulling. If not specified, will pull whatever docker prefers.
     pull:
       platform: amd64
   when: 
-    - docker_image_guacamoledb_pull is defined
+    - docker_image_guacamoledb_pull
 
 - name: docker_image pull {{ docker_image_guacd_name }}
   community.docker.docker_image:
     name: '{{ docker_image_guacd_name }}'
-    force_source: true
     source: pull
     # Select platform for pulling. If not specified, will pull whatever docker prefers.
     pull:
       platform: amd64
   when: 
-    - docker_image_guacd_pull is defined
+    - docker_image_guacd_pull
 
 - name: docker_image pull {{ docker_image_guacamole_name }}
   community.docker.docker_image:
     name: '{{ docker_image_guacamole_name }}'
-    force_source: true
     source: pull
     # Select platform for pulling. If not specified, will pull whatever docker prefers.
     pull:
       platform: amd64
   when: 
-    - docker_image_guacamole_pull is defined
+    - docker_image_guacamole_pull
 
 - name: docker_network {{ docker_container_guacamole_name }}
   community.docker.docker_network:
