@@ -60,24 +60,96 @@ docker_container_guacamole_ldap_root_connection_groupname: "ACME"
 # docker_container_guacamole_ldap_user_search_filter: "(&(objectCategory=person)(objectclass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
 
 
-# @var docker_container_guacamole_ca_certificates:description: >
-# CA certificates used by Guacamole.
-#
-# Example:
-# 
-# ```yaml
-#
+# @var docker_container_guacamole_ca_certificates:description: CA certificates used by Guacamole.
+# @var docker_container_guacamole_ca_certificates:example: >
 # docker_container_guacamole_ca_certificates: 
-#
 #   - { cert_file: "files/acme1_org.cer" } 
-#
 #   - { cert_file: "files/acme2_org.cer" }
-#
-# ```
-#
 # @end
 docker_container_guacamole_ca_certificates: []
 
+# @var docker_container_guacamole_connection_groups_sql_file_delete:description: path of generated sql to delete connection groups
+docker_container_guacamole_connection_groups_sql_file_delete: "{{ docker_container_guacamole_volume_dir }}/generated_connection_groups_delete.sql"
+
+# @var docker_container_guacamole_connection_groups_sql_file_add:description: path of generated sql to add connection groups
+docker_container_guacamole_connection_groups_sql_file_add: "{{ docker_container_guacamole_volume_dir }}/generated_connection_groups_add.sql"
+
+# @var docker_container_guacamole_connections_sql_file_delete:description: path of generated sql to delete connections
+docker_container_guacamole_connections_sql_file_delete: "{{ docker_container_guacamole_volume_dir }}/generated_connections_delete.sql"
+
+# @var docker_container_guacamole_connections_sql_file_add:description: path of generated sql to add connections
+docker_container_guacamole_connections_sql_file_add: "{{ docker_container_guacamole_volume_dir }}/generated_connections_add.sql"
+
+# @var docker_container_guacamole_connection_groups:description: guacamole connection groups to add
+# @var docker_container_guacamole_connection_groups:example: >
+# docker_container_guacamole_connection_groups:
+#   - name: "Group1"
+#     permissions:
+#       users:
+#         - name: "guacadmin"
+#           permission: ["READ", "UPDATE", "DELETE", "ADMINISTER"]
+#       groups:
+#         - name: "guac_admins"
+#           permission: ["READ"]
+#   - name: "Group2"
+#     permissions:
+#       users:
+#         - name: "guacadmin"
+#           permission: ["READ", "UPDATE", "DELETE", "ADMINISTER"]
+#       groups:
+#         - name: "guac_admins"
+#           permission: ["READ"]
+# @end
+docker_container_guacamole_connection_groups: []
+
+# @var docker_container_guacamole_connections:description: guacamole connections to add
+# @var docker_container_guacamole_connections:example: >
+# docker_container_guacamole_connections:
+#   - name: "server1 (rdp)"    
+#     parent_group: "Group1"    
+#     permissions:
+#       users:
+#         - name: "guacadmin"
+#           permission: ["READ", "UPDATE", "DELETE", "ADMINISTER"]
+#       groups:
+#         - name: "guac_admins"
+#           permission: ["READ"]
+#     properties:
+#       console: true
+#       disable_audio: true
+#       enable_font_smoothing: true
+#       hostname: "server1.acme.local"
+#       ignore_cert: true
+#       # load_balance_info: ""
+#       password: "pass1"
+#       port: 3389
+#       resize_method: "display-update"
+#       security: "nla"
+#       server_layout: "de-de-qwertz"
+#       timezone: "Europe/Berlin"
+#       username: "user1"  
+#     protocol: "rdp"
+#    
+#   - name: "server2 (ssh)"    
+#     parent_group: "Group2"    
+#     permissions:
+#       users:
+#         - name: "guacadmin"
+#           permission: ["READ", "UPDATE", "DELETE", "ADMINISTER"]
+#       groups:
+#         - name: "guac_admins"
+#           permission: ["READ"]
+#     properties:
+#       color_scheme: "green-black"
+#       hostname: "server2.acme.local"
+#       locale: "de"
+#       password: "somepassword"
+#       port: 22
+#       timezone: "Europe/Berlin"
+#       username: "root"  
+#     protocol: "ssh"
+# @end
+docker_container_guacamole_connections: []
 
 # ------------
 # Docker image
@@ -142,19 +214,10 @@ docker_container_guacamole_volumes:
   - "{{ docker_container_guacamole_volume_dir }}/home:/guac_home"
   - "{{ docker_container_guacamole_volume_dir }}/certs:/guac_certs"
 
-# @var docker_container_guacamole_labels:description: >
-# Dictionary of key value pairs for container labels.
-#
-# Example:
-#
-# ```yaml
-#
+# @var docker_container_guacamole_labels:description: Dictionary of key value pairs for container labels.
+# @var docker_container_guacamole_labels:example: >
 # docker_container_guacamole_labels:
-#
 #   traefik.enable: "true"
-#
-# ```
-#
 # @end
 docker_container_guacamole_labels: {}
 
@@ -221,19 +284,10 @@ docker_network_guacamole_name: "{{ docker_container_guacamole_name }}_backend"
 # @end
 docker_container_guacamole_restic_enable: false
 
-# @var docker_container_guacamole_restic_s3_endpoint:description: >
-# Minio S3 endpoint for restic backup storage.
-#
-# Example:
-#
-# ```yaml
-#
+# @var docker_container_guacamole_restic_s3_endpoint:description: Minio S3 endpoint for restic backup storage.
+# @var docker_container_guacamole_restic_s3_endpoint:example: >
 # docker_container__base__restic_s3_endpoint: "https://minio.{{ dns_domain }}"
-#
 # docker_container_guacamole_restic_s3_endpoint: "{{ docker_container__base__restic_s3_endpoint }}"
-#
-# ```
-#
 # @end
 docker_container_guacamole_restic_s3_endpoint: "{{ docker_container__base__restic_s3_endpoint }}"
 
@@ -327,19 +381,10 @@ docker_container_guacamoledb_volumes:
   - "{{ docker_container_guacamole_volume_dir }}/mysql:/var/lib/mysql"
   - "{{ docker_container_guacamole_volume_dir }}/mysql_init/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro"
 
-# @var docker_container_guacamoledb_labels:description: >
-# Dictionary of key value pairs for container labels.
-#
-# Example:
-#
-# ```yaml
-#
+# @var docker_container_guacamoledb_labels:description: Dictionary of key value pairs for container labels.
+# @var docker_container_guacamoledb_labels:example: >
 # docker_container_guacamoledb_labels:
-#
 #   traefik.enable: "true"
-#
-# ```
-#
 # @end
 docker_container_guacamoledb_labels: {}
 
@@ -435,19 +480,10 @@ docker_container_guacd_env: {}
 # @end
 docker_container_guacd_volumes: []
 
-# @var docker_container_guacd_labels:description: >
-# Dictionary of key value pairs for container labels.
-#
-# Example:
-#
-# ```yaml
-#
+# @var docker_container_guacd_labels:description: Dictionary of key value pairs for container labels.
+# @var docker_container_guacd_labels:example: >
 # docker_container_guacd_labels:
-#
 #   traefik.enable: "true"
-#
-# ```
-#
 # @end
 docker_container_guacd_labels: {}
 

@@ -1,0 +1,40 @@
+{% for connection_group in docker_container_guacamole_connection_groups %}
+-- Create Connection Group {{ connection_group.name }}
+INSERT INTO guacamole_connection_group (connection_group_name, type) VALUES ('{{ connection_group.name }}', 'ORGANIZATIONAL');
+
+
+{% if connection_group.permissions is defined %}
+{% if connection_group.permissions.users is defined %}
+{% for user in connection_group.permissions.users %}
+-- Create Connection Group Permission for user {{ user.name }}
+INSERT INTO guacamole_connection_group_permission (entity_id, connection_group_id, permission)
+SELECT guacamole_entity.entity_id, guacamole_connection_group.connection_group_id, permission
+FROM (
+    {% for permission in user.permission %}
+    {{ "UNION" if not loop.first }} SELECT '{{ user.name }}' AS username, '{{ connection_group.name }}' AS affected_connection_group_name, '{{ permission }}'        AS permission
+    {% endfor %}
+) permissions
+JOIN guacamole_entity           ON permissions.username = guacamole_entity.name AND guacamole_entity.type = 'USER'
+JOIN guacamole_connection_group ON permissions.affected_connection_group_name = guacamole_connection_group.connection_group_name AND guacamole_connection_group.parent_id is NULL;
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if connection_group.permissions is defined %}
+{% if connection_group.permissions.groups is defined %}
+{% for group in connection_group.permissions.groups %}
+-- Create Connection Group Permission for group {{ group.name }}
+INSERT INTO guacamole_connection_group_permission (entity_id, connection_group_id, permission)
+SELECT guacamole_entity.entity_id, guacamole_connection_group.connection_group_id, permission
+FROM (
+    {% for permission in group.permission %}
+    {{ "UNION" if not loop.first }} SELECT '{{ group.name }}' AS groupname, '{{ connection_group.name }}' AS affected_connection_group_name, '{{ permission }}' AS permission
+    {% endfor %}
+) permissions
+JOIN guacamole_entity           ON permissions.groupname = guacamole_entity.name AND guacamole_entity.type = 'USER_GROUP'
+JOIN guacamole_connection_group ON permissions.affected_connection_group_name = guacamole_connection_group.connection_group_name AND guacamole_connection_group.parent_id is NULL;
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% endfor %}

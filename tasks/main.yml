@@ -25,6 +25,17 @@
     - docker-container-restore-all
     - docker-container-restore-guacamole
 
+# @tag docker-container-configure-all:description: Run configure task for all containers.
+# @tag docker-container-configure-guacamole:description: Run configure task for guacamole.
+- ansible.builtin.import_tasks: "{{ role_path }}/tasks/configure.yml"
+  tags:
+    - docker-container-configure-all
+    - docker-container-configure-guacamole
+    - docker-container-setup-all
+    - docker-container-setup-guacamole
+    - docker-container-restore-all
+    - docker-container-restore-guacamole
+
 # @tag docker-container-backup-init-all:description: Run init backup task for all container.
 # @tag docker-container-backup-init-guacamole:description: Run init backup task for guacamole if restic is enabled.
 - ansible.builtin.import_tasks: "{{ role_path }}/tasks/backup_init.yml"

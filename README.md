@@ -8,6 +8,13 @@ Role to run Guacamole in a docker container
   - [docker_container_guacamole_admin_password](#docker_container_guacamole_admin_password)
   - [docker_container_guacamole_admin_username](#docker_container_guacamole_admin_username)
   - [docker_container_guacamole_ca_certificates](#docker_container_guacamole_ca_certificates)
+  - [docker_container_guacamole_comparisons](#docker_container_guacamole_comparisons)
+  - [docker_container_guacamole_connection_groups](#docker_container_guacamole_connection_groups)
+  - [docker_container_guacamole_connection_groups_sql_file_add](#docker_container_guacamole_connection_groups_sql_file_add)
+  - [docker_container_guacamole_connection_groups_sql_file_delete](#docker_container_guacamole_connection_groups_sql_file_delete)
+  - [docker_container_guacamole_connections](#docker_container_guacamole_connections)
+  - [docker_container_guacamole_connections_sql_file_add](#docker_container_guacamole_connections_sql_file_add)
+  - [docker_container_guacamole_connections_sql_file_delete](#docker_container_guacamole_connections_sql_file_delete)
   - [docker_container_guacamole_database_name](#docker_container_guacamole_database_name)
   - [docker_container_guacamole_database_password](#docker_container_guacamole_database_password)
   - [docker_container_guacamole_database_root_password](#docker_container_guacamole_database_root_password)
@@ -36,6 +43,7 @@ Role to run Guacamole in a docker container
   - [docker_container_guacamole_restic_tag](#docker_container_guacamole_restic_tag)
   - [docker_container_guacamole_volume_dir](#docker_container_guacamole_volume_dir)
   - [docker_container_guacamole_volumes](#docker_container_guacamole_volumes)
+  - [docker_container_guacamoledb_comparisons](#docker_container_guacamoledb_comparisons)
   - [docker_container_guacamoledb_env](#docker_container_guacamoledb_env)
   - [docker_container_guacamoledb_image](#docker_container_guacamoledb_image)
   - [docker_container_guacamoledb_labels](#docker_container_guacamoledb_labels)
@@ -44,6 +52,7 @@ Role to run Guacamole in a docker container
   - [docker_container_guacamoledb_ports](#docker_container_guacamoledb_ports)
   - [docker_container_guacamoledb_volume_dir](#docker_container_guacamoledb_volume_dir)
   - [docker_container_guacamoledb_volumes](#docker_container_guacamoledb_volumes)
+  - [docker_container_guacd_comparisons](#docker_container_guacd_comparisons)
   - [docker_container_guacd_env](#docker_container_guacd_env)
   - [docker_container_guacd_image](#docker_container_guacd_image)
   - [docker_container_guacd_labels](#docker_container_guacd_labels)
@@ -94,22 +103,166 @@ docker_container_guacamole_admin_username: guacadmin
 
 CA certificates used by Guacamole.
 
-Example:
-
-```yaml
-
-docker_container_guacamole_ca_certificates:
-
-- { cert_file: "files/acme1_org.cer" }
-
-- { cert_file: "files/acme2_org.cer" }
-
-```
-
 #### Default value
 
 ```YAML
 docker_container_guacamole_ca_certificates: []
+```
+
+#### Example usage
+
+```YAML
+docker_container_guacamole_ca_certificates:
+  - { cert_file: "files/acme1_org.cer" }
+  - { cert_file: "files/acme2_org.cer" }
+```
+
+### docker_container_guacamole_comparisons
+
+Allows to specify how properties of existing containers are compared with module options to decide whether the container should be recreated / updated or not.
+
+#### Default value
+
+```YAML
+docker_container_guacamole_comparisons:
+  image: strict
+  env: strict
+  volumes: strict
+```
+
+### docker_container_guacamole_connection_groups
+
+guacamole connection groups to add
+
+#### Default value
+
+```YAML
+docker_container_guacamole_connection_groups: []
+```
+
+#### Example usage
+
+```YAML
+docker_container_guacamole_connection_groups:
+  - name: "Group1"
+    permissions:
+      users:
+        - name: "guacadmin"
+          permission: ["READ", "UPDATE", "DELETE", "ADMINISTER"]
+      groups:
+        - name: "guac_admins"
+          permission: ["READ"]
+  - name: "Group2"
+    permissions:
+      users:
+        - name: "guacadmin"
+          permission: ["READ", "UPDATE", "DELETE", "ADMINISTER"]
+      groups:
+        - name: "guac_admins"
+          permission: ["READ"]
+```
+
+### docker_container_guacamole_connection_groups_sql_file_add
+
+path of generated sql to add connection groups
+
+#### Default value
+
+```YAML
+docker_container_guacamole_connection_groups_sql_file_add: '{{ docker_container_guacamole_volume_dir
+  }}/generated_connection_groups_add.sql'
+```
+
+### docker_container_guacamole_connection_groups_sql_file_delete
+
+path of generated sql to delete connection groups
+
+#### Default value
+
+```YAML
+docker_container_guacamole_connection_groups_sql_file_delete: '{{ docker_container_guacamole_volume_dir
+  }}/generated_connection_groups_delete.sql'
+```
+
+### docker_container_guacamole_connections
+
+guacamole connections to add
+
+#### Default value
+
+```YAML
+docker_container_guacamole_connections: []
+```
+
+#### Example usage
+
+```YAML
+docker_container_guacamole_connections:
+  - name: "server1 (rdp)"
+    parent_group: "Group1"
+    permissions:
+      users:
+        - name: "guacadmin"
+          permission: ["READ", "UPDATE", "DELETE", "ADMINISTER"]
+      groups:
+        - name: "guac_admins"
+          permission: ["READ"]
+    properties:
+      console: true
+      disable_audio: true
+      enable_font_smoothing: true
+      hostname: "server1.acme.local"
+      ignore_cert: true
+      # load_balance_info: ""
+      password: "pass1"
+      port: 3389
+      resize_method: "display-update"
+      security: "nla"
+      server_layout: "de-de-qwertz"
+      timezone: "Europe/Berlin"
+      username: "user1"
+    protocol: "rdp"
+
+  - name: "server2 (ssh)"
+    parent_group: "Group2"
+    permissions:
+      users:
+        - name: "guacadmin"
+          permission: ["READ", "UPDATE", "DELETE", "ADMINISTER"]
+      groups:
+        - name: "guac_admins"
+          permission: ["READ"]
+    properties:
+      color_scheme: "green-black"
+      hostname: "server2.acme.local"
+      locale: "de"
+      password: "somepassword"
+      port: 22
+      timezone: "Europe/Berlin"
+      username: "root"
+    protocol: "ssh"
+```
+
+### docker_container_guacamole_connections_sql_file_add
+
+path of generated sql to add connections
+
+#### Default value
+
+```YAML
+docker_container_guacamole_connections_sql_file_add: '{{ docker_container_guacamole_volume_dir
+  }}/generated_connections_add.sql'
+```
+
+### docker_container_guacamole_connections_sql_file_delete
+
+path of generated sql to delete connections
+
+#### Default value
+
+```YAML
+docker_container_guacamole_connections_sql_file_delete: '{{ docker_container_guacamole_volume_dir
+  }}/generated_connections_delete.sql'
 ```
 
 ### docker_container_guacamole_database_name
@@ -205,20 +358,17 @@ docker_container_guacamole_image: '{{ docker_image_guacamole_name }}'
 
 Dictionary of key value pairs for container labels.
 
-Example:
-
-```yaml
-
-docker_container_guacamole_labels:
-
-traefik.enable: "true"
-
-```
-
 #### Default value
 
 ```YAML
 docker_container_guacamole_labels: {}
+```
+
+#### Example usage
+
+```YAML
+docker_container_guacamole_labels:
+  traefik.enable: "true"
 ```
 
 ### docker_container_guacamole_ldap_admin_groupname
@@ -364,21 +514,18 @@ docker_container_guacamole_restic_s3_bucket_name: restic-{{ docker_container_gua
 
 Minio S3 endpoint for restic backup storage.
 
-Example:
-
-```yaml
-
-docker_container__base__restic_s3_endpoint: "https://minio.{{ dns_domain }}"
-
-docker_container_guacamole_restic_s3_endpoint: "{{ docker_container__base__restic_s3_endpoint }}"
-
-```
-
 #### Default value
 
 ```YAML
 docker_container_guacamole_restic_s3_endpoint: '{{ docker_container__base__restic_s3_endpoint
   }}'
+```
+
+#### Example usage
+
+```YAML
+docker_container__base__restic_s3_endpoint: "https://minio.{{ dns_domain }}"
+docker_container_guacamole_restic_s3_endpoint: "{{ docker_container__base__restic_s3_endpoint }}"
 ```
 
 ### docker_container_guacamole_restic_s3_repo
@@ -459,6 +606,19 @@ docker_container_guacamole_volumes:
   - '{{ docker_container_guacamole_volume_dir }}/certs:/guac_certs'
 ```
 
+### docker_container_guacamoledb_comparisons
+
+Allows to specify how properties of existing containers are compared with module options to decide whether the container should be recreated / updated or not.
+
+#### Default value
+
+```YAML
+docker_container_guacamoledb_comparisons:
+  image: strict
+  env: strict
+  volumes: strict
+```
+
 ### docker_container_guacamoledb_env
 
 Dictionery of key,value pairs for docker environment variables to configure guacamoledb.
@@ -487,20 +647,17 @@ docker_container_guacamoledb_image: '{{ docker_image_guacamoledb_name }}'
 
 Dictionary of key value pairs for container labels.
 
-Example:
-
-```yaml
-
-docker_container_guacamoledb_labels:
-
-traefik.enable: "true"
-
-```
-
 #### Default value
 
 ```YAML
 docker_container_guacamoledb_labels: {}
+```
+
+#### Example usage
+
+```YAML
+docker_container_guacamoledb_labels:
+  traefik.enable: "true"
 ```
 
 ### docker_container_guacamoledb_name
@@ -557,6 +714,19 @@ docker_container_guacamoledb_volumes:
   - '{{ docker_container_guacamole_volume_dir }}/mysql_init/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro'
 ```
 
+### docker_container_guacd_comparisons
+
+Allows to specify how properties of existing containers are compared with module options to decide whether the container should be recreated / updated or not.
+
+#### Default value
+
+```YAML
+docker_container_guacd_comparisons:
+  image: strict
+  env: strict
+  volumes: strict
+```
+
 ### docker_container_guacd_env
 
 Dictionery of key,value pairs for docker environment variables to configure guacd.
@@ -581,20 +751,17 @@ docker_container_guacd_image: '{{ docker_image_guacd_name }}'
 
 Dictionary of key value pairs for container labels.
 
-Example:
-
-```yaml
-
-docker_container_guacd_labels:
-
-traefik.enable: "true"
-
-```
-
 #### Default value
 
 ```YAML
 docker_container_guacd_labels: {}
+```
+
+#### Example usage
+
+```YAML
+docker_container_guacd_labels:
+  traefik.enable: "true"
 ```
 
 ### docker_container_guacd_name
@@ -741,6 +908,8 @@ docker_network_guacd_name: '{{ docker_container_guacamole_name }}_backend'
 
 ## Discovered Tags
 
+**_debug_**
+
 **_docker-container-backup-all_**\
 &emsp;Backup all containers' volume mounts.
 
@@ -758,6 +927,12 @@ docker_network_guacd_name: '{{ docker_container_guacamole_name }}_backend'
 
 **_docker-container-backup-list-guacamole_**\
 &emsp;List guacamole backups.
+
+**_docker-container-configure-all_**\
+&emsp;Run configure task for all containers.
+
+**_docker-container-configure-guacamole_**\
+&emsp;Run configure task for guacamole.
 
 **_docker-container-prereq-all_**\
 &emsp;Ensure all pre-requisites are installed

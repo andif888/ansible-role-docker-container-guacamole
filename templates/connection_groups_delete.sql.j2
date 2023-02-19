@@ -1,0 +1,4 @@
+{% for connection_group in docker_container_guacamole_connection_groups %}
+-- Delete Connection Group {{ connection_group.name }}
+DELETE FROM guacamole_connection_group WHERE connection_group_name = '{{ connection_group.name }}' AND parent_id is NULL AND type = 'ORGANIZATIONAL';
+{% endfor %}

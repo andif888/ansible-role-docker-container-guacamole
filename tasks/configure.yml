@@ -1,0 +1,197 @@
+---
+# this file is responsible for adding and removing guacamole connection groups and connections
+
+- name: Get container info {{ docker_container_guacamoledb_name }}
+  community.docker.docker_container_info:
+    name: "{{ docker_container_guacamoledb_name }}"
+  register: docker_container_guacamoledb_info_result
+
+- name: Check exists {{ docker_container_guacamole_connections_sql_file_delete }}
+  ansible.builtin.stat:
+    path: "{{ docker_container_guacamole_connections_sql_file_delete }}"
+  register: docker_container_guacamole_connections_sql_file_delete_check
+
+- name: Check exists {{ docker_container_guacamole_connection_groups_sql_file_delete }}
+  ansible.builtin.stat:
+    path: "{{ docker_container_guacamole_connection_groups_sql_file_delete }}"
+  register: docker_container_guacamole_connection_groups_sql_file_delete_check
+
+
+# Delete previous connections first
+- name: Delete previous connections first
+  ansible.builtin.shell: |
+    if [ -f "{{ docker_container_guacamole_connections_sql_file_delete }}" ]; then /usr/bin/docker exec -i {{ docker_container_guacamoledb_name }} mysql -u{{ docker_container_guacamole_database_user }} -p{{ docker_container_guacamole_database_password }} {{ docker_container_guacamole_database_name }} < '{{ docker_container_guacamole_connections_sql_file_delete }}';fi
+  args:
+    chdir: '{{ docker_container_guacamole_volume_dir }}'
+    executable: /bin/bash
+  register: docker_container_guac_connection_delete_result
+  when:
+    - docker_container_guacamoledb_info_result.exists
+    - docker_container_guacamoledb_info_result.container.State.Running
+    - docker_container_guacamole_connections_sql_file_delete_check.stat.exists
+
+- name: Debug docker_container_guac_connection_delete_result
+  ansible.builtin.debug:
+    var: docker_container_guac_connection_delete_result
+  when: docker_container_guac_connection_delete_result is defined
+  tags: [never,debug]
+  no_log: true
+
+- name: Remove old {{ docker_container_guacamole_connections_sql_file_delete }}
+  ansible.builtin.file:
+    path: "{{ docker_container_guacamole_connections_sql_file_delete }}"
+    state: absent
+  when:
+    - docker_container_guacamole_connections_sql_file_delete_check.stat.exists
+
+
+# Delete previous connection_groups first
+- name: Delete previous connection_groups first
+  ansible.builtin.shell: |
+    if [ -f "{{ docker_container_guacamole_connection_groups_sql_file_delete }}" ]; then /usr/bin/docker exec -i {{ docker_container_guacamoledb_name }} mysql -u{{ docker_container_guacamole_database_user }} -p{{ docker_container_guacamole_database_password }} {{ docker_container_guacamole_database_name }} < '{{ docker_container_guacamole_connection_groups_sql_file_delete }}';fi
+  args:
+    chdir: '{{ docker_container_guacamole_volume_dir }}'
+    executable: /bin/bash
+  register: docker_container_guac_connection_groups_delete_result
+  when:
+    - docker_container_guacamoledb_info_result.exists
+    - docker_container_guacamoledb_info_result.container.State.Running
+    - docker_container_guacamole_connection_groups_sql_file_delete_check.stat.exists
+
+- name: Debug docker_container_guac_connection_groups_delete_result
+  ansible.builtin.debug:
+    var: docker_container_guac_connection_groups_delete_result
+  when: docker_container_guac_connection_groups_delete_result is defined
+  tags: [never,debug]
+  no_log: true
+
+- name: Remove old {{ docker_container_guacamole_connection_groups_sql_file_delete }}
+  ansible.builtin.file:
+    path: "{{ docker_container_guacamole_connection_groups_sql_file_delete }}"
+    state: absent
+  when:
+    - docker_container_guacamole_connection_groups_sql_file_delete_check.stat.exists
+
+# Generate connection_groups delete sql file
+- name: Generate connection_groups delete sql file
+  ansible.builtin.template:
+    src: "templates/connection_groups_delete.sql.j2"
+    dest: "{{ docker_container_guacamole_connection_groups_sql_file_delete }}"
+  when:
+    - docker_container_guacamoledb_info_result.exists
+    - docker_container_guacamoledb_info_result.container.State.Running
+    - docker_container_guacamole_connection_groups | length > 0
+
+# Generate connection_groups add sql file
+- name: Generate connection_groups add sql file
+  ansible.builtin.template:
+    src: "templates/connection_groups_add.sql.j2"
+    dest: "{{ docker_container_guacamole_connection_groups_sql_file_add }}"
+  when:
+    - docker_container_guacamoledb_info_result.exists
+    - docker_container_guacamoledb_info_result.container.State.Running
+    - docker_container_guacamole_connection_groups | length > 0
+
+# Generate connections delete sql file
+- name: Generate connections delete sql file
+  ansible.builtin.template:
+    src: "templates/connections_delete.sql.j2"
+    dest: "{{ docker_container_guacamole_connections_sql_file_delete }}"
+  when:
+    - docker_container_guacamoledb_info_result.exists
+    - docker_container_guacamoledb_info_result.container.State.Running
+    - docker_container_guacamole_connections | length > 0
+
+# Generate connections add sql file
+- name: Generate connections add sql file
+  ansible.builtin.template:
+    src: "templates/connections_add.sql.j2"
+    dest: "{{ docker_container_guacamole_connections_sql_file_add }}"
+  when:
+    - docker_container_guacamoledb_info_result.exists
+    - docker_container_guacamoledb_info_result.container.State.Running
+    - docker_container_guacamole_connections | length > 0
+
+# Cleanup new connections
+- name: Cleanup new connections
+  ansible.builtin.shell: |
+    /usr/bin/docker exec -i {{ docker_container_guacamoledb_name }} mysql -u{{ docker_container_guacamole_database_user }} -p{{ docker_container_guacamole_database_password }} {{ docker_container_guacamole_database_name }} < '{{ docker_container_guacamole_connections_sql_file_delete }}'
+  args:
+    chdir: '{{ docker_container_guacamole_volume_dir }}'
+    executable: /bin/bash
+  register: docker_container_guac_new_connections_delete_result
+  when:
+    - docker_container_guacamoledb_info_result.exists
+    - docker_container_guacamoledb_info_result.container.State.Running
+    - docker_container_guacamole_connections | length > 0
+
+- name: Debug docker_container_guac_new_connections_delete_result
+  ansible.builtin.debug:
+    var: docker_container_guac_new_connections_delete_result
+  when: docker_container_guac_new_connections_delete_result is defined
+  tags: [never,debug]
+  no_log: true
+
+
+# Cleanup new connection_groups
+- name: Cleanup new connection_groups
+  ansible.builtin.shell: |
+    /usr/bin/docker exec -i {{ docker_container_guacamoledb_name }} mysql -u{{ docker_container_guacamole_database_user }} -p{{ docker_container_guacamole_database_password }} {{ docker_container_guacamole_database_name }} < '{{ docker_container_guacamole_connection_groups_sql_file_delete }}'
+  args:
+    chdir: '{{ docker_container_guacamole_volume_dir }}'
+    executable: /bin/bash
+  register: docker_container_guac_new_connection_groups_delete_result
+  when:
+    - docker_container_guacamoledb_info_result.exists
+    - docker_container_guacamoledb_info_result.container.State.Running
+    - docker_container_guacamole_connection_groups | length > 0
+
+- name: Debug docker_container_guac_new_connection_groups_delete_result
+  ansible.builtin.debug:
+    var: docker_container_guac_new_connection_groups_delete_result
+  when: docker_container_guac_new_connection_groups_delete_result is defined
+  tags: [never,debug]
+  no_log: true
+
+
+# Add new connection_groups
+- name: Add new connection_groups
+  ansible.builtin.shell: |
+    /usr/bin/docker exec -i {{ docker_container_guacamoledb_name }} mysql -u{{ docker_container_guacamole_database_user }} -p{{ docker_container_guacamole_database_password }} {{ docker_container_guacamole_database_name }} < '{{ docker_container_guacamole_connection_groups_sql_file_add }}'
+  args:
+    chdir: '{{ docker_container_guacamole_volume_dir }}'
+    executable: /bin/bash
+  register: docker_container_guac_new_connection_groups_add_result
+  when:
+    - docker_container_guacamoledb_info_result.exists
+    - docker_container_guacamoledb_info_result.container.State.Running
+    - docker_container_guacamole_connection_groups | length > 0
+
+- name: Debug docker_container_guac_new_connection_groups_add_result
+  ansible.builtin.debug:
+    var: docker_container_guac_new_connection_groups_add_result
+  when: docker_container_guac_new_connection_groups_add_result is defined
+  tags: [never,debug]
+  no_log: true
+
+
+# Add new connections
+- name: Add new connections
+  ansible.builtin.shell: |
+    /usr/bin/docker exec -i {{ docker_container_guacamoledb_name }} mysql -u{{ docker_container_guacamole_database_user }} -p{{ docker_container_guacamole_database_password }} {{ docker_container_guacamole_database_name }} < '{{ docker_container_guacamole_connections_sql_file_add }}'
+  args:
+    chdir: '{{ docker_container_guacamole_volume_dir }}'
+    executable: /bin/bash
+  register: docker_container_guac_new_connections_add_result
+  when:
+    - docker_container_guacamoledb_info_result.exists
+    - docker_container_guacamoledb_info_result.container.State.Running
+    - docker_container_guacamole_connections | length > 0
+
+- name: Debug docker_container_guac_new_connections_add_result
+  ansible.builtin.debug:
+    var: docker_container_guac_new_connections_add_result
+  when: docker_container_guac_new_connections_add_result is defined
+  tags: [never,debug]
+  no_log: true
+...

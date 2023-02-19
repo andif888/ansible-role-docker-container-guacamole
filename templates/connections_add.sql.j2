@@ -1,0 +1,78 @@
+{% for connection in docker_container_guacamole_connections %}
+-- Create Connection {{ connection.name }}
+INSERT INTO guacamole_connection (connection_name, parent_id, protocol)
+SELECT
+    '{{ connection.name }}'                           AS connection_name,
+    guacamole_connection_group.connection_group_id    AS parent_id,
+    '{{ connection.protocol | default("rdp") }}'      AS protocol
+FROM guacamole_connection_group 
+WHERE connection_group_name = '{{ connection.parent_group | default("ROOT") }}' 
+  AND parent_id is NULL;
+
+-- Create Connection Parameters
+INSERT INTO guacamole_connection_parameter (connection_id, parameter_name, parameter_value)
+SELECT guacamole_connection.connection_id, parameter_name, parameter_value
+FROM (
+              SELECT '{{ connection.name }}' AS connection_name, 'hostname'               AS parameter_name, '{{ connection.properties.hostname }}'                                   AS parameter_value
+        UNION SELECT '{{ connection.name }}' AS connection_name, 'port'                   AS parameter_name, '{{ connection.properties.port | default(3389) }}'                       AS parameter_value
+        UNION SELECT '{{ connection.name }}' AS connection_name, 'username'               AS parameter_name, '{{ connection.properties.username | default("${GUAC_USERNAME}") }}'     AS parameter_value
+        UNION SELECT '{{ connection.name }}' AS connection_name, 'password'               AS parameter_name, '{{ connection.properties.password | default("${GUAC_PASSWORD}") }}'     AS parameter_value
+        {% if connection.properties.timezone is defined %}UNION SELECT '{{ connection.name }}' AS connection_name, 'timezone'                                   AS parameter_name, '{{ connection.properties.timezone }}'                                                 AS parameter_value{% endif %}
+        {% if (not connection.protocol is defined) or (connection.protocol == 'rdp') %}{% if connection.properties.disable_audio is defined %}UNION SELECT '{{ connection.name }}' AS connection_name, 'disable-audio' AS parameter_name, '{{ connection.properties.disable_audio | string | lower | default("true") }}'            AS parameter_value{% endif %}
+        {% if connection.properties.enable_font_smoothing is defined %}UNION SELECT '{{ connection.name }}' AS connection_name, 'enable-font-smoothing'         AS parameter_name, '{{ connection.properties.enable_font_smoothing | string | lower | default("true") }}' AS parameter_value{% endif %}
+        {% if connection.properties.ignore_cert is defined %}UNION SELECT '{{ connection.name }}' AS connection_name, 'ignore-cert'                             AS parameter_name, '{{ connection.properties.ignore_cert | string | lower | default("true") }}'           AS parameter_value{% endif %}
+        {% if connection.properties.resize_method is defined %}UNION SELECT '{{ connection.name }}' AS connection_name, 'resize-method'                         AS parameter_name, '{{ connection.properties.resize_method | default("display-update") }}'                AS parameter_value{% endif %}
+        {% if connection.properties.security is defined %}UNION SELECT '{{ connection.name }}' AS connection_name, 'security'                                   AS parameter_name, '{{ connection.properties.security | default("nla") }}'                                AS parameter_value{% endif %}
+        {% if connection.properties.server_layout is defined %}UNION SELECT '{{ connection.name }}' AS connection_name, 'server-layout'                         AS parameter_name, '{{ connection.properties.server_layout | default("de-de-qwertz") }}'                  AS parameter_value{% endif %}
+        {% if connection.properties.console is defined %}UNION SELECT '{{ connection.name }}' AS connection_name, 'console'                                     AS parameter_name, '{{ connection.properties.console | string | lower | default("true") }}'               AS parameter_value{% endif %}
+        {% if connection.properties.load_balance_info is defined %}UNION SELECT '{{ connection.name }}' AS connection_name, 'load-balance-info'                 AS parameter_name, '{{ connection.properties.load_balance_info }}'                                        AS parameter_value{% endif %}
+        {% endif %}
+        {% if (connection.protocol == 'ssh') %}{% if connection.properties.locale is defined %}UNION SELECT '{{ connection.name }}' AS connection_name, 'locale'                AS parameter_name, '{{ connection.properties.locale }}'                                   AS parameter_value{% endif %}
+        {% if connection.properties.color_scheme is defined %}UNION SELECT '{{ connection.name }}' AS connection_name, 'color-scheme'           AS parameter_name, '{{ connection.properties.color_scheme }}'                               AS parameter_value{% endif %}
+        {% endif %}
+) params
+JOIN guacamole_connection ON params.connection_name = guacamole_connection.connection_name AND guacamole_connection.parent_id = (
+  SELECT connection_group_id FROM guacamole_connection_group WHERE connection_group_name = '{{ connection.parent_group | default("ROOT") }}' AND parent_id is NULL
+);
+
+{% if connection.permissions is defined %}
+{% if connection.permissions.users is defined %}
+{% for user in connection.permissions.users %}
+-- Create Connection Permission for user {{ user.name }}
+INSERT INTO guacamole_connection_permission (entity_id, connection_id, permission)
+SELECT guacamole_entity.entity_id, guacamole_connection.connection_id, permission
+FROM (
+    {% for permission in user.permission %}
+    {{ "UNION" if not loop.first }} SELECT '{{ user.name }}' AS username, '{{ connection.name }}' AS affected_connection_name, '{{ permission }}' AS permission
+    {% endfor %}
+
+) permissions
+JOIN guacamole_entity     ON permissions.username = guacamole_entity.name AND guacamole_entity.type = 'USER'
+JOIN guacamole_connection ON permissions.affected_connection_name = guacamole_connection.connection_name AND guacamole_connection.parent_id = (
+  SELECT connection_group_id FROM guacamole_connection_group WHERE connection_group_name = '{{ connection.parent_group | default("ROOT") }}' AND parent_id is NULL
+);
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if connection.permissions is defined %}
+{% if connection.permissions.groups is defined %}
+{% for group in connection.permissions.groups %}
+-- Create Connection Permission for group {{ group.name }}
+INSERT INTO guacamole_connection_permission (entity_id, connection_id, permission)
+SELECT guacamole_entity.entity_id, guacamole_connection.connection_id, permission
+FROM (
+    {% for permission in group.permission %}
+    {{ "UNION" if not loop.first }} SELECT '{{ group.name }}' AS groupname, '{{ connection.name }}' AS affected_connection_name, '{{ permission }}' AS permission
+    {% endfor %}
+
+) permissions
+JOIN guacamole_entity     ON permissions.groupname = guacamole_entity.name AND guacamole_entity.type = 'USER_GROUP'
+JOIN guacamole_connection ON permissions.affected_connection_name = guacamole_connection.connection_name AND guacamole_connection.parent_id = (
+  SELECT connection_group_id FROM guacamole_connection_group WHERE connection_group_name = '{{ connection.parent_group | default("ROOT") }}' AND parent_id is NULL
+);
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% endfor %}
