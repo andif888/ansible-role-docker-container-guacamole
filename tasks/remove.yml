@@ -1,27 +1,27 @@
 ---
 - name: remove_docker_container {{ docker_container_guacamole_name }}
-  community.general.docker_container: 
+  community.docker.docker_container: 
     name: "{{ docker_container_guacamole_name }}"    
     container_default_behavior: no_defaults
-    keep_volumes: "{{ docker_container_guacamole_keep_volumes | default('yes') }}"
+    keep_volumes: "{{ docker_container_guacamole_keep_volumes | default(true) }}"
     state: absent
 
 - name: remove_docker_container {{ docker_container_guacd_name }}
-  community.general.docker_container: 
+  community.docker.docker_container: 
     name: "{{ docker_container_guacd_name }}"    
     container_default_behavior: no_defaults
-    keep_volumes: "{{ docker_container_guacd_keep_volumes | default('yes') }}"
+    keep_volumes: "{{ docker_container_guacd_keep_volumes | default(true) }}"
     state: absent
 
 - name: remove_docker_container {{ docker_container_guacamoledb_name }}
-  community.general.docker_container: 
+  community.docker.docker_container: 
     name: "{{ docker_container_guacamoledb_name }}"    
     container_default_behavior: no_defaults
-    keep_volumes: "{{ docker_container_guacamoledb_keep_volumes | default('yes') }}"
+    keep_volumes: "{{ docker_container_guacamoledb_keep_volumes | default(true) }}"
     state: absent
 
 - name: remove_docker_network {{ docker_network_guacamole_name }}
-  community.general.docker_network:
+  community.docker.docker_network:
     name: "{{ docker_network_guacamole_name }}"
     force: yes
     state: absent
