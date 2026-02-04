@@ -23,7 +23,7 @@
 
 - name: docker_container - {{ docker_container_guacamole_volume_dir }} schema.sql
   template:
-    src: templates/schema.sql.j2
+    src: templates/schema-1.6.sql.j2
     dest: "{{ docker_container_guacamole_volume_dir }}/mysql_init/schema.sql"
 
 - name: docker_container - {{ docker_container_guacamole_volume_dir }} guacamole.properties
@@ -33,26 +33,26 @@
 
 - name: docker_container - {{ docker_container_guacamole_volume_dir }} server.xml
   template:
-    src: templates/server.xml.j2
+    src: templates/server-1.6.xml.j2
     dest: "{{ docker_container_guacamole_volume_dir }}/conf/server.xml"
 
-- name: docker_container - {{ docker_container_guacamole_volume_dir }} download auth-totp
-  unarchive:
-    src: 'https://apache.org/dyn/closer.lua/guacamole/{{ docker_container_guacamole_mfa_totp_version }}/binary/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}.tar.gz?action=download'
-    dest: '{{ docker_container_guacamole_volume_dir }}'
-    creates: '{{ docker_container_guacamole_volume_dir }}/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}.jar'
-    remote_src: yes
-  tags: docker_container_guac_mfa
-  when: docker_container_guacamole_mfa_enabled
+# - name: docker_container - {{ docker_container_guacamole_volume_dir }} download auth-totp
+#   unarchive:
+#     src: 'https://apache.org/dyn/closer.lua/guacamole/{{ docker_container_guacamole_mfa_totp_version }}/binary/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}.tar.gz?action=download'
+#     dest: '{{ docker_container_guacamole_volume_dir }}'
+#     creates: '{{ docker_container_guacamole_volume_dir }}/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}.jar'
+#     remote_src: yes
+#   tags: docker_container_guac_mfa
+#   when: docker_container_guacamole_mfa_enabled
 
-- name: docker_container - {{ docker_container_guacamole_volume_dir }} copy auth-totp to extension directory
-  copy:
-    src: '{{ docker_container_guacamole_volume_dir }}/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}.jar'
-    dest: '{{ docker_container_guacamole_volume_dir }}/home/extensions/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}.jar'
-    remote_src: yes
-  register: docker_container_guac_mfa_result
-  tags: docker_container_guac_mfa
-  when: docker_container_guacamole_mfa_enabled
+# - name: docker_container - {{ docker_container_guacamole_volume_dir }} copy auth-totp to extension directory
+#   copy:
+#     src: '{{ docker_container_guacamole_volume_dir }}/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}.jar'
+#     dest: '{{ docker_container_guacamole_volume_dir }}/home/extensions/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}.jar'
+#     remote_src: yes
+#   register: docker_container_guac_mfa_result
+#   tags: docker_container_guac_mfa
+#   when: docker_container_guacamole_mfa_enabled
 
 - name: docker_container - {{ docker_container_guacamole_volume_dir }} check if auth-totp extenstions file exists
   ansible.builtin.stat:
@@ -63,7 +63,7 @@
   file:
     path: '{{ docker_container_guacamole_volume_dir }}/home/extensions/guacamole-auth-totp-{{ docker_container_guacamole_mfa_totp_version }}.jar'
     state: absent
-    register: docker_container_guac_mfa_file
+  register: docker_container_guac_mfa_file
   tags: docker_container_guac_mfa
   when:
     - docker_container_guacamole_mfa_enabled == false

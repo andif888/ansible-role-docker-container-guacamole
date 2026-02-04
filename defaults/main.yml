@@ -1,6 +1,8 @@
 ---
 # defaults file for ansible-role-docker-container-guacamole
 
+docker_container_guacamole_api_session_timeout: "60"
+
 # @var docker_container_guacamole_mfa_enabled:description: Enable TOTP authentication extension.
 docker_container_guacamole_mfa_enabled: false
 
@@ -186,6 +188,7 @@ docker_container_guacamole_volume_dir: "{{ docker_container__base__volume_dir }}
 # environment variables to configure guacamole.
 # @end
 docker_container_guacamole_env:
+  API_SESSION_TIMEOUT: "{{ docker_container_guacamole_api_session_timeout | default(60) }}"
   GUACAMOLE_HOME: "/guac_home"
   MYSQL_HOSTNAME: "mysql"
   MYSQL_DATABASE: "{{ docker_container_guacamole_database_name }}"
@@ -193,6 +196,7 @@ docker_container_guacamole_env:
   MYSQL_PASSWORD: "{{ docker_container_guacamole_database_password }}"
   GUACD_HOSTNAME: "guacd"
   GUACD_PORT: "4822"
+  TOTP_ENABLED: "{{ docker_container_guacamole_mfa_enabled | bool | ternary('true', 'false') }}"
   TOTP_ISSUER: "{{ docker_container_guacamole_mfa_totp_issuer }}"
   LDAP_HOSTNAME: "{{ docker_container_guacamole_ldap_hostame | default(omit) }}"
   LDAP_USER_BASE_DN: "{{ docker_container_guacamole_ldap_user_base_dn | default(omit) }}"
